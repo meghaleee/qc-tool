@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QC // IssueLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg: #080810;
+  --surface: #0d0d1a;
+  --surface2: #121220;
+  --surface3: #181828;
+  --border: #1e1e3a;
+  --border2: #2a2a48;
+  --accent: #00ff88;
+  --accent2: #ff3366;
+  --accent3: #00ccff;
+  --accent4: #ffcc00;
+  --text: #e0e8ff;
+  --text2: #8899cc;
+  --muted: #445577;
+  --critical: #ff3366;
+  --minor: #ffcc00;
+  --suggestion: #00ccff;
+  --glow: 0 0 20px rgba(0,255,136,.15);
+  --glow2: 0 0 12px rgba(0,204,255,.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+/* ALL MONOSPACE */
+body, input, select, textarea, button {
+  font-family: 'Space Mono', monospace;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* STAR FIELD */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 10% 15%, rgba(0,255,136,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 25% 40%, rgba(0,204,255,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 40% 8%, rgba(255,255,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 55% 70%, rgba(0,255,136,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 70% 30%, rgba(0,204,255,.6) 0%, transparent 100%),
+    radial-gradient(1px 1px at 85% 55%, rgba(255,255,255,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 92% 12%, rgba(0,255,136,.5) 0%, transparent 100%),
+    radial-gradient(1px 1px at 5% 80%, rgba(0,204,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 60% 90%, rgba(255,255,255,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 33% 60%, rgba(0,255,136,.3) 0%, transparent 100%),
+    radial-gradient(1px 1px at 78% 82%, rgba(0,204,255,.4) 0%, transparent 100%),
+    radial-gradient(1px 1px at 48% 48%, rgba(255,204,0,.3) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* SCAN LINE OVERLAY */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0,0,20,.15) 2px,
+    rgba(0,0,20,.15) 4px
+  );
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* HEADER */
+header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 40px;
+  border-bottom: 1px solid var(--border2);
+  background: rgba(13,13,26,.95);
+  backdrop-filter: blur(12px);
+  position: sticky; top: 0; z-index: 200;
+  position: relative; z-index: 200;
+}
+
+header::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: .4;
+}
+
+.logo { display: flex; align-items: center; gap: 14px; }
+
+.logo-mark {
+  width: 36px; height: 36px;
+  border: 1px solid var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700; font-size: 11px; color: var(--accent);
+  letter-spacing: 0;
+  box-shadow: var(--glow), inset 0 0 8px rgba(0,255,136,.08);
+  position: relative;
+}
+
+.logo-mark::before {
+  content: '';
+  position: absolute; inset: 2px;
+  border: 1px solid rgba(0,255,136,.2);
+}
+
+.logo-text {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px; color: var(--text);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.logo-text span { color: var(--accent); }
+.logo-sub {
+  font-size: 9px; color: var(--muted);
+  letter-spacing: 3px; text-transform: uppercase;
+  display: block; margin-top: 1px;
+}
+
+.hdr-r { display: flex; gap: 10px; align-items: center; }
+
+.stat-pill {
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  padding: 6px 16px; font-size: 10px;
+  color: var(--text2); display: flex; gap: 18px;
+  letter-spacing: .5px;
+}
+.stat-pill b { color: var(--text); }
+.stat-pill b.red { color: var(--critical); text-shadow: 0 0 8px rgba(255,51,102,.4); }
+
+/* BUTTONS */
+.btn {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; font-weight: 700;
+  padding: 9px 18px; border: none; cursor: pointer;
+  letter-spacing: 1px; text-transform: uppercase;
+  transition: all .15s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-accent {
+  background: transparent; color: var(--accent);
+  border: 1px solid var(--accent);
+  box-shadow: var(--glow);
+}
+.btn-accent:hover {
+  background: rgba(0,255,136,.1);
+  box-shadow: 0 0 24px rgba(0,255,136,.3);
+  transform: translateY(-1px);
+}
+.btn-outline {
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border2);
+}
+.btn-outline:hover { border-color: var(--accent3); color: var(--accent3); }
+
+.btn-save {
+  background: transparent; color: var(--accent4);
+  border: 1px solid rgba(255,204,0,.3);
+}
+.btn-save:hover { background: rgba(255,204,0,.08); border-color: var(--accent4); }
+
+.btn-ghost {
+  background: transparent; color: var(--text2);
+  border: 1px solid var(--border2);
+  font-size: 9px; padding: 6px 12px; cursor: pointer;
+  font-family: 'Space Mono', monospace;
+  text-transform: uppercase; letter-spacing: .8px;
+  transition: all .15s;
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--border2); }
+
+/* TABS */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border2);
+  background: rgba(13,13,26,.9);
+  padding: 0 40px;
+  position: relative; z-index: 100;
+}
+.tab {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px;
+  padding: 14px 22px; border: none; background: transparent;
+  color: var(--muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all .2s; margin-bottom: -1px;
+}
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+.tab:hover:not(.active) { color: var(--text2); }
+
+main { max-width: 1600px; margin: 0 auto; padding: 36px 40px; position: relative; z-index: 2; }
+
+/* PROJECT ROW */
+.proj-row { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+.proj-row input {
+  background: transparent; border: none;
+  border-bottom: 1px solid var(--border2);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 22px; letter-spacing: 2px; text-transform: uppercase;
+  padding: 6px 2px; flex: 1; outline: none; transition: border-color .2s;
+}
+.proj-row input:focus { border-bottom-color: var(--accent); }
+.proj-row input::placeholder { color: var(--muted); }
+
+/* DROP HERO */
+.drop-hero {
+  border: 1px solid var(--border2);
+  background: var(--surface);
+  padding: 80px 40px; text-align: center; cursor: pointer;
+  transition: all .3s; position: relative; overflow: hidden;
+}
+.drop-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0,255,136,.04) 0%, transparent 70%);
+  pointer-events: none;
+}
+.drop-hero.drag-over {
+  border-color: var(--accent);
+  background: rgba(0,255,136,.04);
+  box-shadow: var(--glow);
+}
+.drop-hero h2 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 28px; letter-spacing: 4px; text-transform: uppercase;
+  margin-bottom: 14px; color: var(--text);
+}
+.drop-hero h2 span { color: var(--accent); }
+.drop-hero p { font-size: 11px; color: var(--text2); margin-bottom: 6px; line-height: 1.9; letter-spacing: .5px; }
+.key {
+  display: inline-block;
+  background: var(--surface2); border: 1px solid var(--border2);
+  padding: 3px 10px; font-size: 10px; color: var(--accent3);
+  letter-spacing: 1px;
+}
+.or-sep { color: var(--muted); margin: 0 10px; }
+.coord-line {
+  position: absolute; top: 12px; left: 16px;
+  font-size: 9px; color: var(--muted); letter-spacing: 2px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+/* CANVAS TOOLBAR */
+#canvasToolbar {
+  display: none; align-items: stretch; gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--border2); border-top: none;
+  overflow-x: auto;
+}
+.tb-section {
+  display: flex; flex-direction: column;
+  padding: 10px 18px; border-right: 1px solid var(--border);
+  gap: 8px; flex-shrink: 0;
+}
+.tb-section:last-child { border-right: none; margin-left: auto; }
+.tb-section-label {
+  font-size: 8px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.tb-section-content { display: flex; align-items: center; gap: 8px; }
+.tool-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.tool-item span { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+.tool-btn {
+  width: 34px; height: 34px;
+  border: 1px solid var(--border2); background: var(--surface2);
+  color: var(--text); cursor: pointer; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .15s;
+}
+.tool-btn.active {
+  border-color: var(--accent); background: rgba(0,255,136,.08);
+  box-shadow: 0 0 10px rgba(0,255,136,.2);
+}
+.tool-btn:hover:not(.active) { border-color: var(--border2); background: var(--surface3); }
+
+.color-item { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.color-item span { font-size: 8px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+.cswatch { width: 22px; height: 22px; border: 2px solid transparent; cursor: pointer; transition: all .15s; }
+.cswatch.active { border-color: #fff; transform: scale(1.15); }
+
+input[type=range] { accent-color: var(--accent); width: 70px; cursor: pointer; }
+.size-val { font-size: 11px; color: var(--accent); min-width: 18px; text-align: center; }
+
+/* CANVAS */
+#canvasWrap {
+  display: none; overflow: auto;
+  border: 1px solid var(--border2); border-top: none;
+  background: #050508; position: relative;
+}
+#annotCanvas { display: block; cursor: crosshair; }
+
+/* ISSUE PANEL */
+#issuePanelWrap { display: none; }
+
+.ip-top {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: 1px solid var(--accent);
+  padding: 28px 36px 0;
+  position: relative;
+}
+.ip-top::before {
+  content: '// ISSUE_LOG.INIT';
+  position: absolute; top: 12px; right: 20px;
+  font-size: 9px; color: var(--muted);
+  font-family: 'Share Tech Mono', monospace;
+  letter-spacing: 1px;
+}
+
+.ip-top h3 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 14px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 6px;
+}
+.ip-hint {
+  font-size: 11px; color: var(--text2); line-height: 1.7;
+  margin-bottom: 24px; letter-spacing: .3px;
+}
+.ip-hint span { color: var(--accent); }
+
+.shared-fields {
+  display: grid; grid-template-columns: 1fr 1fr auto;
+  gap: 16px; margin-bottom: 0; padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.field-group { display: flex; flex-direction: column; gap: 7px; }
+.field-group label {
+  font-size: 9px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.field-group label .sub { color: var(--muted); font-size: 8px; letter-spacing: .5px; }
+.field-group input, .field-group select, .field-group textarea {
+  background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 12px; padding: 10px 12px; outline: none;
+  transition: border-color .2s; width: 100%;
+}
+.field-group input:focus, .field-group select:focus, .field-group textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 8px rgba(0,255,136,.1);
+}
+.field-group input::placeholder, .field-group textarea::placeholder { color: var(--muted); }
+.field-group select option { background: var(--surface2); }
+.field-group textarea { resize: vertical; }
+
+/* PINS HEADER + ROWS */
+.pins-header {
+  display: grid;
+  grid-template-columns: 60px 1fr 180px 160px 44px;
+  padding: 10px 0 6px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+}
+.ph {
+  font-size: 8px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  padding: 0 12px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.ph:first-child { text-align: center; padding: 0; }
+
+.pins-list { display: flex; flex-direction: column; }
+
+.pin-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 180px 160px 44px;
+  align-items: start;
+  border-top: 1px solid var(--border);
+  background: var(--surface2);
+  animation: fi .2s ease;
+  transition: background .15s;
+}
+.pin-row:hover { background: var(--surface3); }
+
+.pin-num-cell {
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px 0;
+}
+.pin-badge {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px; font-weight: 700; color: #000;
+  flex-shrink: 0;
+}
+.pin-desc-cell { padding: 13px 14px; }
+.pin-desc-cell textarea {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 11px; padding: 9px 11px;
+  outline: none; resize: none;
+  transition: border-color .2s; line-height: 1.6;
+}
+.pin-desc-cell textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 6px rgba(0,255,136,.1);
+}
+.pin-desc-cell textarea::placeholder { color: var(--muted); }
+.pin-sev-cell, .pin-st-cell { padding: 13px 12px 13px 0; }
+.pin-sel {
+  width: 100%; background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 10px; padding: 9px 10px; outline: none;
+  cursor: pointer; text-transform: uppercase; letter-spacing: .5px;
+  transition: border-color .2s;
+}
+.pin-sel:focus { border-color: var(--accent); }
+.pin-sel option { background: var(--surface); }
+
+.pin-del-cell { display: flex; align-items: flex-start; justify-content: center; padding: 15px 0 0; }
+.pin-del {
+  background: transparent; border: none;
+  color: var(--muted); cursor: pointer; font-size: 16px;
+  padding: 4px; transition: color .15s; line-height: 1;
+}
+.pin-del:hover { color: var(--accent2); }
+
+.no-pins {
+  background: var(--surface2);
+  border-top: 1px solid var(--border);
+  padding: 48px; text-align: center;
+  color: var(--muted); font-size: 11px; line-height: 2;
+  letter-spacing: .5px;
+}
+.no-pins .big { font-size: 32px; margin-bottom: 12px; }
+
+.ip-actions {
+  padding: 18px 36px;
+  background: var(--surface);
+  border: 1px solid var(--border2); border-top: none;
+  display: flex; gap: 12px; align-items: center;
+}
+.pin-count-label { font-size: 10px; color: var(--text2); letter-spacing: .5px; }
+
+/* LIST VIEW */
+.list-top {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; flex-wrap: wrap; gap: 12px;
+}
+.list-top h2 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 18px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text);
+}
+
+.filter-row { display: flex; gap: 5px; flex-wrap: wrap; }
+.chip {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px; padding: 5px 12px;
+  border: 1px solid var(--border2);
+  background: transparent; color: var(--muted); cursor: pointer;
+  text-transform: uppercase; letter-spacing: .8px; transition: all .15s;
+}
+.chip.active, .chip:hover {
+  border-color: var(--accent); color: var(--accent);
+  background: rgba(0,255,136,.06);
+}
+
+/* TABLE */
+.tbl-head {
+  display: grid;
+  grid-template-columns: 40px 80px 130px 130px 1fr 108px 116px 72px;
+  padding: 0 12px 8px; margin-bottom: 2px;
+}
+.th {
+  font-size: 8px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px;
+  font-family: 'Share Tech Mono', monospace;
+}
+
+.icard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 40px 80px 130px 130px 1fr 108px 116px 72px;
+  align-items: center; margin-bottom: 2px;
+  animation: fi .2s ease; transition: background .15s;
+}
+.icard:hover { background: var(--surface2); }
+@keyframes fi { from{opacity:0;transform:translateX(-4px)} to{opacity:1;transform:translateX(0)} }
+
+.ic { padding: 12px 10px; font-size: 12px; }
+.ic-n { font-size: 10px; color: var(--muted); padding-left: 14px; font-family: 'Share Tech Mono', monospace; }
+.ic-th { padding: 8px 10px; }
+.ic-th img { width: 58px; height: 40px; object-fit: cover; display: block; border: 1px solid var(--border2); cursor: pointer; }
+.ni { width: 58px; height: 40px; background: var(--surface2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 8px; color: var(--muted); }
+.ic-flow { font-size: 11px; color: var(--accent3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: .3px; }
+.ic-page { font-size: 11px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ic-de { font-size: 11px; line-height: 1.6; color: var(--text); }
+
+.badge {
+  display: inline-block; font-size: 8px; padding: 3px 7px;
+  text-transform: uppercase; letter-spacing: 1px; border: 1px solid;
+  font-family: 'Share Tech Mono', monospace;
+}
+.badge.Critical { color: var(--critical); border-color: var(--critical); background: rgba(255,51,102,.08); }
+.badge.Minor { color: var(--minor); border-color: var(--minor); background: rgba(255,204,0,.08); }
+.badge.Suggestion { color: var(--suggestion); border-color: var(--suggestion); background: rgba(0,204,255,.08); }
+
+.ssel {
+  background: transparent; border: 1px solid var(--border);
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 9px; padding: 5px 8px; cursor: pointer; outline: none;
+  width: 96px; text-transform: uppercase; letter-spacing: .5px;
+}
+.ssel.Open { color: #ff6b6b; border-color: rgba(255,107,107,.35); }
+.ssel.Fixed { color: #00ff88; border-color: rgba(0,255,136,.35); }
+.ssel.Wontfix { color: var(--muted); border-color: rgba(68,85,119,.4); }
+
+.ic-ac { display: flex; gap: 2px; padding-right: 10px; justify-content: flex-end; }
+.icon-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; padding: 5px; font-size: 13px; transition: color .15s; }
+.icon-btn:hover { color: var(--text); }
+.icon-btn.del:hover { color: var(--accent2); }
+
+/* SESSIONS */
+.sessions-bar {
+  background: var(--surface);
+  border: 1px solid var(--border2); border-bottom: none;
+  padding: 14px 20px;
+  display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.sessions-bar h4 {
+  font-size: 9px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 2px; white-space: nowrap;
+  font-family: 'Share Tech Mono', monospace;
+}
+.session-chip {
+  background: var(--surface2); border: 1px solid var(--border2);
+  padding: 5px 12px; font-size: 10px; color: var(--text2);
+  cursor: pointer; transition: all .15s;
+  display: flex; align-items: center; gap: 8px; letter-spacing: .3px;
+}
+.session-chip:hover { border-color: var(--accent3); color: var(--accent3); }
+.sc-del { color: var(--muted); font-size: 10px; padding: 0 2px; cursor: pointer; }
+.sc-del:hover { color: var(--accent2); }
+
+/* MANUAL FORM */
+#manualForm {
+  background: var(--surface);
+  border: 1px solid var(--border2);
+  border-top: 1px solid var(--accent);
+  padding: 28px 32px; margin-bottom: 20px;
+  display: none; animation: fi .2s ease;
+}
+#manualForm h3 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 13px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 20px;
+}
+.mf-grid { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; margin-bottom: 14px; }
+.mf-g label {
+  display: block; font-size: 9px; color: var(--muted);
+  text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px;
+  font-family: 'Share Tech Mono', monospace;
+}
+.mf-g input, .mf-g select, .mf-g textarea {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border2);
+  color: var(--text); font-family: 'Space Mono', monospace;
+  font-size: 11px; padding: 10px 12px; outline: none;
+  transition: border-color .2s; resize: none;
+}
+.mf-g input:focus, .mf-g select:focus, .mf-g textarea:focus { border-color: var(--accent); }
+.mf-g input::placeholder, .mf-g textarea::placeholder { color: var(--muted); }
+.paste-zone {
+  border: 1px dashed var(--border2); background: var(--surface2);
+  padding: 20px; text-align: center; cursor: pointer;
+  min-height: 88px; display: flex; align-items: center;
+  justify-content: center; flex-direction: column; gap: 5px;
+  position: relative; transition: border-color .2s;
+}
+.paste-zone.focused { border-color: var(--accent); background: rgba(0,255,136,.03); }
+.paste-zone p { font-size: 11px; color: var(--text2); letter-spacing: .3px; }
+.paste-zone img { max-width: 100%; max-height: 160px; object-fit: contain; }
+.paste-zone .rm { position: absolute; top: 6px; right: 6px; background: var(--accent2); border: none; color: #fff; width: 22px; height: 22px; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.mf-bot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+.empty {
+  text-align: center; padding: 80px;
+  border: 1px solid var(--border); color: var(--muted);
+  background: var(--surface); position: relative; overflow: hidden;
+}
+.empty::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at center, rgba(0,204,255,.03) 0%, transparent 70%);
+}
+.empty .emo { font-size: 44px; margin-bottom: 14px; }
+.empty h3 {
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 16px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--text2); margin-bottom: 10px;
+}
+.empty p { font-size: 11px; line-height: 1.9; letter-spacing: .3px; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,8,.92); z-index: 500; align-items: center; justify-content: center; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--surface); border: 1px solid var(--border2); padding: 20px; max-width: 92vw; max-height: 90vh; overflow: auto; position: relative; }
+.modal img { max-width: 100%; display: block; }
+.modal-close { position: absolute; top: 10px; right: 10px; background: var(--accent2); border: none; color: #fff; width: 26px; height: 26px; font-size: 13px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: 32px; right: 32px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  color: var(--accent); padding: 12px 20px; font-size: 10px;
+  z-index: 1000; animation: toastIn .2s ease; pointer-events: none;
+  letter-spacing: 1px; text-transform: uppercase;
+  box-shadow: var(--glow);
+  font-family: 'Share Tech Mono', monospace;
+}
+@keyframes toastIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">QC</div>
+    <div>
+      <div class="logo-text">Issue<span>Log</span></div>
+      <span class="logo-sub">Quality Control System</span>
+    </div>
+  </div>
+  <div class="hdr-r">
+    <div class="stat-pill">
+      <span>Total <b id="s-total">0</b></span>
+      <span>Critical <b class="red" id="s-crit">0</b></span>
+      <span>Open <b id="s-open">0</b></span>
+      <span>Fixed <b id="s-fixed">0</b></span>
+    </div>
+    <button class="btn btn-save" onclick="saveSession()">// SAVE SESSION</button>
+    <button class="btn btn-outline" onclick="exportExcel()">↓ EXPORT</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab active" id="tab-ann" onclick="switchTab('ann')">[ 01 ] ANNOTATOR</button>
+  <button class="tab" id="tab-list" onclick="switchTab('list')">[ 02 ] ISSUE LOG &nbsp;<span id="tab-count">0</span></button>
+</div>
+
+<main>
+
+<!-- ANNOTATOR -->
+<div id="annView">
+  <div class="proj-row">
+    <input type="text" id="projectName" placeholder="// PROJECT_NAME..." oninput="saveState()"/>
+  </div>
+
+  <div class="drop-hero" id="dropHero" tabindex="0">
+    <div class="coord-line">SYS.INPUT // AWAITING_IMAGE_DATA</div>
+    <h2>Drop a <span>Screenshot</span> Here</h2>
+    <p>Take a screenshot of the page you're reviewing, click here, then paste</p>
+    <p style="margin-bottom:20px;"><span class="key">CTRL+V</span><span class="or-sep">//</span><span class="key">⌘+V</span></p>
+    <p><label for="fileIn" style="color:var(--accent3);cursor:pointer;text-decoration:underline;font-size:10px;letter-spacing:1px;">OR BROWSE FOR AN IMAGE FILE</label></p>
+    <input type="file" id="fileIn" accept="image/*" style="display:none" onchange="loadFile(this)"/>
+  </div>
+
+  <div id="canvasToolbar">
+    <div class="tb-section">
+      <span class="tb-section-label">// Drawing Tools</span>
+      <div class="tb-section-content">
+        <div class="tool-item"><div class="tool-btn active" id="tb-pin" onclick="setTool('pin')">📍</div><span>Pin</span></div>
+        <div class="tool-item"><div class="tool-btn" id="tb-rect" onclick="setTool('rect')">⬜</div><span>Box</span></div>
+        <div class="tool-item"><div class="tool-btn" id="tb-arrow" onclick="setTool('arrow')">↗</div><span>Arrow</span></div>
+        <div class="tool-item"><div class="tool-btn" id="tb-pen" onclick="setTool('pen')">✏️</div><span>Pen</span></div>
+      </div>
+    </div>
+    <div class="tb-section">
+      <span class="tb-section-label">// Color</span>
+      <div class="tb-section-content" style="gap:10px;">
+        <div class="color-item"><div class="cswatch active" style="background:#ff4d4d" data-c="#ff4d4d" onclick="setColor(this)"></div><span>Red</span></div>
+        <div class="color-item"><div class="cswatch" style="background:#ffaa00" data-c="#ffaa00" onclick="setColor(this)"></div><span>Orange</span></div>
+        <div class="color-item"><div class="cswatch" style="background:#e8ff47" data-c="#e8ff47" onclick="setColor(this)"></div><span>Yellow</span></div>
+        <div class="color-item"><div class="cswatch" style="background:#6bddff" data-c="#6bddff" onclick="setColor(this)"></div><span>Blue</span></div>
+        <div class="color-item"><div class="cswatch" style="background:#ffffff" data-c="#ffffff" onclick="setColor(this)"></div><span>White</span></div>
+      </div>
+    </div>
+    <div class="tb-section">
+      <span class="tb-section-label">// Brush Size</span>
+      <div class="tb-section-content" style="gap:8px;">
+        <input type="range" id="brushSz" min="1" max="12" value="3" oninput="document.getElementById('szVal').textContent=this.value"/>
+        <span class="size-val" id="szVal">3</span>
+      </div>
+    </div>
+    <div class="tb-section">
+      <span class="tb-section-label">// Actions</span>
+      <div class="tb-section-content" style="gap:6px;">
+        <button class="btn-ghost" onclick="undoLast()">↩ UNDO</button>
+        <button class="btn-ghost" onclick="clearAnn()">✕ CLEAR</button>
+        <button class="btn-ghost" onclick="newShot()">⟳ NEW</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="canvasWrap"><canvas id="annotCanvas"></canvas></div>
+
+  <div id="issuePanelWrap">
+    <div class="ip-top">
+      <h3>// Log Issues</h3>
+      <p class="ip-hint" id="ipHint">Click 📍 on the screenshot to drop a numbered pin — each pin gets its own issue row below.</p>
+
+      <div class="shared-fields">
+        <div class="field-group">
+          <label>Flow Name <span class="sub">// applies to all pins</span></label>
+          <input type="text" id="fp-flow" placeholder="e.g. Default State"/>
+        </div>
+        <div class="field-group">
+          <label>Page Name <span class="sub">// applies to all pins</span></label>
+          <input type="text" id="fp-page" placeholder="e.g. CLP"/>
+        </div>
+        <div class="field-group" style="align-self:end;">
+          <label>&nbsp;</label>
+          <button class="btn btn-outline" onclick="logSsOnly()" style="white-space:nowrap;">💾 SCREENSHOT ONLY</button>
+        </div>
+      </div>
+
+      <div class="pins-header" id="pinsHeader" style="display:none;">
+        <div class="ph" style="text-align:center;">PIN</div>
+        <div class="ph" style="padding-left:14px;">DESCRIPTION</div>
+        <div class="ph">SEVERITY</div>
+        <div class="ph">STATUS</div>
+        <div class="ph"></div>
+      </div>
+
+      <div class="pins-list" id="pinsList">
+        <div class="no-pins" id="noPinsMsg">
+          <div class="big">📍</div>
+          <div>Click anywhere on the screenshot above to drop pin #1<br/>Each pin will appear here as its own issue row</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ip-actions">
+      <button class="btn btn-accent" id="logAllBtn" onclick="logAllPins()" style="display:none;">＋ LOG ALL PINS AS ISSUES</button>
+      <span class="pin-count-label" id="pinCountLabel"></span>
+    </div>
+  </div>
+</div>
+
+<!-- LIST VIEW -->
+<div id="listView" style="display:none;">
+  <div class="list-top">
+    <h2 id="listTitle">// ALL ISSUES</h2>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+      <div class="filter-row">
+        <button class="chip active" onclick="setFilter('all',this)">ALL</button>
+        <button class="chip" onclick="setFilter('Critical',this)">CRITICAL</button>
+        <button class="chip" onclick="setFilter('Minor',this)">MINOR</button>
+        <button class="chip" onclick="setFilter('Suggestion',this)">SUGGESTION</button>
+        <button class="chip" onclick="setFilter('Open',this)" style="margin-left:8px;">OPEN</button>
+        <button class="chip" onclick="setFilter('Fixed',this)">FIXED</button>
+        <button class="chip" onclick="setFilter('Wontfix',this)">WON'T FIX</button>
+      </div>
+      <button class="btn btn-accent" onclick="showManual()">＋ MANUAL ISSUE</button>
+    </div>
+  </div>
+
+  <div class="sessions-bar" id="sessionsBar">
+    <h4>// SAVED SESSIONS</h4>
+    <div id="sessionChips" style="display:flex;gap:8px;flex-wrap:wrap;"></div>
+    <span id="noSessions" style="font-size:10px;color:var(--muted);letter-spacing:.5px;">No saved sessions — use SAVE SESSION to preserve your work across days.</span>
+  </div>
+
+  <div id="manualForm">
+    <h3 id="mfTitle">// ADD_MANUAL_ISSUE</h3>
+    <div class="mf-grid">
+      <div class="mf-g"><label>Flow Name</label><input type="text" id="mf-flow" placeholder="e.g. Default State"/></div>
+      <div class="mf-g"><label>Page Name</label><input type="text" id="mf-page" placeholder="e.g. CLP"/></div>
+      <div class="mf-g"><label>Severity</label><select id="mf-sv"><option>Critical</option><option selected>Minor</option><option>Suggestion</option></select></div>
+      <div class="mf-g"><label>Status</label><select id="mf-st"><option selected>Open</option><option>Fixed</option><option>Wontfix</option></select></div>
+    </div>
+    <div class="mf-g" style="margin-bottom:14px;"><label>Description</label><textarea id="mf-de" rows="3" placeholder="Describe the issue..."></textarea></div>
+    <div class="mf-g">
+      <label>Screenshot (optional) — click then Ctrl+V</label>
+      <div class="paste-zone" id="mfPZ" tabindex="0" onclick="focusMfPaste()">
+        <p>📋 Click here, then <span class="key">Ctrl+V</span></p>
+      </div>
+    </div>
+    <div class="mf-bot">
+      <button class="btn btn-outline" onclick="cancelManual()">CANCEL</button>
+      <button class="btn btn-accent" onclick="saveManual()">SAVE ISSUE</button>
+    </div>
+  </div>
+
+  <div class="tbl-head">
+    <div class="th">#</div>
+    <div class="th">IMAGE</div>
+    <div class="th">FLOW</div>
+    <div class="th">PAGE</div>
+    <div class="th">DESCRIPTION</div>
+    <div class="th">SEVERITY</div>
+    <div class="th">STATUS</div>
+    <div class="th"></div>
+  </div>
+  <div id="issuesList"></div>
+  <div class="empty" id="emptyState" style="display:none;">
+    <div class="emo">◎</div>
+    <h3>No Issues Logged</h3>
+    <p>Go to the Annotator tab, paste a screenshot,<br/>drop pins and fill in each issue — then hit Log All Pins.</p>
+  </div>
+</div>
+
+</main>
+
+<div class="modal-overlay" id="imgModal" onclick="closeModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <img id="modalImg" src="" alt=""/>
+  </div>
+</div>
+
+<script>
+/* STATE */
+let issues = [];
+let activeFilter = 'all';
+let mfImg = null;
+let mfFocused = false;
+let editingId = null;
+let pendingPins = [];
+
+/* CANVAS */
+const canvas = document.getElementById('annotCanvas');
+const ctx = canvas.getContext('2d');
+let bgImage = null;
+let currentTool = 'pin';
+let currentColor = '#ff4d4d';
+let annotations = [];
+let pinCount = 0;
+let drawing = false, sx, sy;
+
+const PIN_COLORS = ['#ff4d4d','#ffcc00','#00ff88','#00ccff','#ff6bdd','#ff8c4d','#dd6bff','#6bffdd'];
+
+/* PERSIST */
+function saveState() {
+  try { localStorage.setItem('qc_current', JSON.stringify({ issues, project: document.getElementById('projectName').value })); } catch(e) {}
+}
+function loadState() {
+  try { const raw=localStorage.getItem('qc_current'); if(!raw)return; const s=JSON.parse(raw); issues=s.issues||[]; document.getElementById('projectName').value=s.project||''; updateStats(); } catch(e) {}
+}
+function saveSession() {
+  if(!issues.length){toast('NO ISSUES TO SAVE');return;}
+  const proj=document.getElementById('projectName').value||'UNTITLED';
+  const sessions=getSessions();
+  sessions.push({id:Date.now(),name:proj,date:new Date().toLocaleDateString('en-GB'),count:issues.length,issues:JSON.parse(JSON.stringify(issues))});
+  try { localStorage.setItem('qc_sessions',JSON.stringify(sessions)); saveState(); toast(`SESSION "${proj}" SAVED — ${issues.length} ISSUES`); renderSessionChips(); }
+  catch(e){toast('STORAGE FULL — EXPORT FIRST');}
+}
+function getSessions(){try{return JSON.parse(localStorage.getItem('qc_sessions'))||[];}catch(e){return [];}}
+function loadSession(id) {
+  const s=getSessions().find(x=>x.id===id); if(!s)return;
+  if(issues.length&&!confirm(`Load "${s.name}"? Current unsaved issues will be replaced.`))return;
+  issues=JSON.parse(JSON.stringify(s.issues)); document.getElementById('projectName').value=s.name;
+  saveState(); updateStats(); switchTab('list'); renderIssues();
+  toast(`LOADED "${s.name}" — ${issues.length} ISSUES`);
+}
+function deleteSession(id,e) {
+  e.stopPropagation(); const sessions=getSessions(); const s=sessions.find(x=>x.id===id);
+  if(!s||!confirm(`Delete session "${s.name}"?`))return;
+  localStorage.setItem('qc_sessions',JSON.stringify(sessions.filter(x=>x.id!==id)));
+  renderSessionChips(); toast('SESSION DELETED');
+}
+function renderSessionChips() {
+  const sessions=getSessions(); const chips=document.getElementById('sessionChips'); const none=document.getElementById('noSessions');
+  if(!sessions.length){chips.innerHTML='';none.style.display='block';return;}
+  none.style.display='none';
+  chips.innerHTML=sessions.map(s=>`<div class="session-chip" onclick="loadSession(${s.id})"><span>📁 ${esc(s.name)}</span><span style="color:var(--muted);font-size:9px;">${s.date} · ${s.count}</span><span class="sc-del" onclick="deleteSession(${s.id},event)">✕</span></div>`).join('');
+}
+
+/* TABS */
+function switchTab(t) {
+  document.getElementById('annView').style.display=t==='ann'?'block':'none';
+  document.getElementById('listView').style.display=t==='list'?'block':'none';
+  document.getElementById('tab-ann').classList.toggle('active',t==='ann');
+  document.getElementById('tab-list').classList.toggle('active',t==='list');
+  if(t==='list'){renderIssues();renderSessionChips();}
+}
+
+/* SCREENSHOT */
+const hero=document.getElementById('dropHero');
+hero.addEventListener('dragover',e=>{e.preventDefault();hero.classList.add('drag-over');});
+hero.addEventListener('dragleave',()=>hero.classList.remove('drag-over'));
+hero.addEventListener('drop',e=>{e.preventDefault();hero.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image'))readImg(f);});
+
+document.addEventListener('paste',e=>{
+  if(mfFocused){
+    for(let it of e.clipboardData.items){if(it.type.startsWith('image')){const r=new FileReader();r.onload=ev=>{mfImg=ev.target.result;renderMfPaste();};r.readAsDataURL(it.getAsFile());e.preventDefault();break;}}
+    return;
+  }
+  if(document.getElementById('annView').style.display==='none')return;
+  for(let it of e.clipboardData.items){if(it.type.startsWith('image')){readImg(it.getAsFile());e.preventDefault();break;}}
+});
+
+function loadFile(inp){if(inp.files[0])readImg(inp.files[0]);}
+function readImg(file){const r=new FileReader();r.onload=ev=>loadToCanvas(ev.target.result);r.readAsDataURL(file);}
+
+function loadToCanvas(src) {
+  const img=new Image();
+  img.onload=function(){
+    bgImage=img; annotations=[]; pinCount=0; pendingPins=[];
+    const maxW=Math.min(document.getElementById('canvasWrap').clientWidth||1400,1400);
+    const sc=Math.min(1,maxW/img.width);
+    canvas.width=img.width*sc; canvas.height=img.height*sc;
+    redraw();
+    hero.style.display='none';
+    document.getElementById('canvasWrap').style.display='block';
+    document.getElementById('canvasToolbar').style.display='flex';
+    document.getElementById('issuePanelWrap').style.display='block';
+    renderPinRows();
+  };
+  img.src=src;
+}
+
+/* DRAWING */
+function redraw(){
+  if(!bgImage)return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bgImage,0,0,canvas.width,canvas.height);
+  annotations.forEach(a=>drawAnn(ctx,a));
+}
+function drawAnn(c,a){
+  c.save(); c.strokeStyle=a.color; c.fillStyle=a.color; c.lineWidth=a.sz||2; c.lineCap='round'; c.lineJoin='round';
+  if(a.type==='pin'){
+    const r=15; c.beginPath(); c.arc(a.x,a.y,r,0,Math.PI*2); c.fillStyle=a.color; c.fill();
+    c.strokeStyle='rgba(0,0,0,.4)'; c.lineWidth=1.5; c.stroke();
+    c.fillStyle='#000'; c.font='bold 13px "Space Mono",monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(a.num,a.x,a.y+1);
+  } else if(a.type==='rect'){c.strokeRect(a.x,a.y,a.w,a.h);}
+  else if(a.type==='arrow'){drawArrow(c,a.x1,a.y1,a.x2,a.y2,a.sz);}
+  else if(a.type==='pen'){if(a.pts.length<2)return;c.beginPath();c.moveTo(a.pts[0].x,a.pts[0].y);a.pts.forEach(p=>c.lineTo(p.x,p.y));c.stroke();}
+  c.restore();
+}
+function drawArrow(c,x1,y1,x2,y2,sz=2){
+  const hl=sz*7,ang=Math.atan2(y2-y1,x2-x1);
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hl*Math.cos(ang-Math.PI/6),y2-hl*Math.sin(ang-Math.PI/6));c.lineTo(x2-hl*Math.cos(ang+Math.PI/6),y2-hl*Math.sin(ang+Math.PI/6));c.closePath();c.fill();
+}
+function getXY(e){const r=canvas.getBoundingClientRect(),src=e.touches?e.touches[0]:e;return{x:src.clientX-r.left,y:src.clientY-r.top};}
+
+canvas.addEventListener('mousedown',e=>{
+  const{x,y}=getXY(e);
+  if(currentTool==='pin'){
+    pinCount++;
+    const col=PIN_COLORS[(pinCount-1)%PIN_COLORS.length];
+    annotations.push({type:'pin',x,y,num:pinCount,color:col,sz:3});
+    pendingPins.push({num:pinCount,color:col,desc:'',severity:'Minor',status:'Open'});
+    redraw();renderPinRows();return;
+  }
+  drawing=true;sx=x;sy=y;
+  if(currentTool==='pen')annotations.push({type:'pen',pts:[{x,y}],color:currentColor,sz:parseInt(document.getElementById('brushSz').value)});
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!drawing)return; const{x,y}=getXY(e); const sz=parseInt(document.getElementById('brushSz').value);
+  if(currentTool==='pen'){annotations[annotations.length-1].pts.push({x,y});redraw();}
+  else{redraw();ctx.save();ctx.strokeStyle=currentColor;ctx.fillStyle=currentColor;ctx.lineWidth=sz;ctx.lineCap='round';if(currentTool==='rect')ctx.strokeRect(sx,sy,x-sx,y-sy);else if(currentTool==='arrow')drawArrow(ctx,sx,sy,x,y,sz);ctx.restore();}
+});
+canvas.addEventListener('mouseup',e=>{
+  if(!drawing)return;drawing=false;const{x,y}=getXY(e);const sz=parseInt(document.getElementById('brushSz').value);
+  if(currentTool==='rect')annotations.push({type:'rect',x:sx,y:sy,w:x-sx,h:y-sy,color:currentColor,sz});
+  else if(currentTool==='arrow')annotations.push({type:'arrow',x1:sx,y1:sy,x2:x,y2:y,color:currentColor,sz});
+  redraw();
+});
+canvas.addEventListener('mouseleave',()=>{if(drawing&&currentTool!=='pen'){drawing=false;redraw();}});
+
+function setTool(t){currentTool=t;['pin','rect','arrow','pen'].forEach(id=>document.getElementById('tb-'+id).classList.toggle('active',id===t));canvas.style.cursor=t==='pin'?'cell':'crosshair';}
+function setColor(el){currentColor=el.dataset.c;document.querySelectorAll('.cswatch').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+function undoLast(){
+  if(!annotations.length)return;
+  const last=annotations[annotations.length-1];
+  if(last.type==='pin'){pinCount=Math.max(0,pinCount-1);pendingPins=pendingPins.filter(p=>p.num!==last.num);renderPinRows();}
+  annotations.pop();redraw();
+}
+function clearAnn(){annotations=[];pinCount=0;pendingPins=[];redraw();renderPinRows();}
+function newShot(){bgImage=null;annotations=[];pinCount=0;pendingPins=[];ctx.clearRect(0,0,canvas.width,canvas.height);document.getElementById('canvasWrap').style.display='none';document.getElementById('canvasToolbar').style.display='none';document.getElementById('issuePanelWrap').style.display='none';hero.style.display='block';}
+
+/* PIN ROWS */
+function renderPinRows(){
+  const list=document.getElementById('pinsList');
+  const hdr=document.getElementById('pinsHeader');
+  const logBtn=document.getElementById('logAllBtn');
+  const label=document.getElementById('pinCountLabel');
+  const hint=document.getElementById('ipHint');
+  if(!pendingPins.length){
+    hdr.style.display='none';logBtn.style.display='none';label.textContent='';
+    hint.innerHTML='Click 📍 on the screenshot to drop a numbered pin — each pin gets its own issue row below.';
+    list.innerHTML=`<div class="no-pins"><div class="big">📍</div><div>Click anywhere on the screenshot above to drop pin #1<br/>Each pin will appear here as its own issue row</div></div>`;
+    return;
+  }
+  hdr.style.display='grid';logBtn.style.display='inline-flex';
+  label.textContent=`${pendingPins.length} PIN${pendingPins.length>1?'S':''} READY`;
+  hint.innerHTML=`<span>${pendingPins.length} pin${pendingPins.length>1?'s':''} placed.</span> Fill in each issue below, then click LOG ALL PINS AS ISSUES.`;
+  list.innerHTML=pendingPins.map(p=>`
+    <div class="pin-row" id="pr-${p.num}">
+      <div class="pin-num-cell"><div class="pin-badge" style="background:${p.color};">${p.num}</div></div>
+      <div class="pin-desc-cell">
+        <textarea rows="2" placeholder="Describe the issue for pin #${p.num}..." oninput="pendingPins.find(x=>x.num===${p.num}).desc=this.value">${esc(p.desc)}</textarea>
+      </div>
+      <div class="pin-sev-cell">
+        <select class="pin-sel" onchange="pendingPins.find(x=>x.num===${p.num}).severity=this.value">
+          <option ${p.severity==='Critical'?'selected':''}>Critical</option>
+          <option ${p.severity==='Minor'?'selected':''}>Minor</option>
+          <option ${p.severity==='Suggestion'?'selected':''}>Suggestion</option>
+        </select>
+      </div>
+      <div class="pin-st-cell">
+        <select class="pin-sel" onchange="pendingPins.find(x=>x.num===${p.num}).status=this.value">
+          <option ${p.status==='Open'?'selected':''}>Open</option>
+          <option ${p.status==='Fixed'?'selected':''}>Fixed</option>
+          <option ${p.status==='Wontfix'?'selected':''}>Wontfix</option>
+        </select>
+      </div>
+      <div class="pin-del-cell"><button class="pin-del" onclick="removePin(${p.num})">✕</button></div>
+    </div>
+  `).join('');
+}
+
+function removePin(num){
+  pendingPins=pendingPins.filter(p=>p.num!==num);
+  annotations=annotations.filter(a=>!(a.type==='pin'&&a.num===num));
+  let c=0; annotations.forEach(a=>{if(a.type==='pin'){c++;a.num=c;}});
+  pendingPins.forEach((p,i)=>p.num=i+1); pinCount=pendingPins.length;
+  redraw();renderPinRows();
+}
+
+function logAllPins(){
+  const flow=document.getElementById('fp-flow').value.trim()||'—';
+  const page=document.getElementById('fp-page').value.trim()||'—';
+  const snap=bgImage?getSnapshot():null;
+  const ts=new Date().toLocaleDateString('en-GB');
+  if(!pendingPins.length){toast('NO PINS TO LOG');return;}
+  const empty=pendingPins.filter(p=>!p.desc.trim());
+  if(empty.length===pendingPins.length){toast('PLEASE DESCRIBE AT LEAST ONE ISSUE');return;}
+  let logged=0;
+  pendingPins.forEach(p=>{
+    if(!p.desc.trim())return;
+    issues.push({id:Date.now()+Math.random(),flow,page,desc:`[Pin ${p.num}] ${p.desc.trim()}`,severity:p.severity,status:p.status,img:snap,pinNum:p.num,ts,source:'annotator'});
+    logged++;
+  });
+  updateStats();saveState();
+  toast(`✓ ${logged} ISSUE${logged>1?'S':''} LOGGED`);
+  document.getElementById('fp-flow').value='';
+  document.getElementById('fp-page').value='';
+  clearAnn();newShot();
+}
+
+function logSsOnly(){
+  if(!bgImage){toast('NO SCREENSHOT LOADED');return;}
+  const flow=document.getElementById('fp-flow').value.trim()||'—';
+  const page=document.getElementById('fp-page').value.trim()||'—';
+  issues.push({id:Date.now(),flow,page,desc:'(screenshot only)',severity:'Minor',status:'Open',img:getSnapshot(),ts:new Date().toLocaleDateString('en-GB'),source:'annotator'});
+  updateStats();saveState();toast('SCREENSHOT SAVED');
+  document.getElementById('fp-flow').value='';document.getElementById('fp-page').value='';
+  clearAnn();newShot();
+}
+
+function getSnapshot(){return canvas.toDataURL('image/png');}
+
+/* MANUAL FORM */
+function showManual(){editingId=null;document.getElementById('mfTitle').textContent='// ADD_MANUAL_ISSUE';document.getElementById('manualForm').style.display='block';document.getElementById('mf-de').focus();}
+function cancelManual(){document.getElementById('manualForm').style.display='none';resetManual();}
+function resetManual(){['mf-flow','mf-page','mf-de'].forEach(id=>document.getElementById(id).value='');document.getElementById('mf-sv').value='Minor';document.getElementById('mf-st').value='Open';mfImg=null;editingId=null;renderMfPaste();}
+function focusMfPaste(){mfFocused=true;document.getElementById('mfPZ').classList.add('focused');}
+document.addEventListener('click',e=>{if(!document.getElementById('mfPZ').contains(e.target)){mfFocused=false;document.getElementById('mfPZ').classList.remove('focused');}});
+function renderMfPaste(){const pz=document.getElementById('mfPZ');pz.innerHTML=mfImg?`<img src="${mfImg}" alt=""/><button class="rm" onclick="rmMfImg(event)">✕</button>`:`<p>📋 Click here, then <span class="key">Ctrl+V</span></p>`;}
+function rmMfImg(e){e.stopPropagation();mfImg=null;renderMfPaste();}
+function saveManual(){
+  const desc=document.getElementById('mf-de').value.trim();
+  if(!desc){flashEl('mf-de');return;}
+  const issue={id:editingId||Date.now(),flow:document.getElementById('mf-flow').value.trim()||'—',page:document.getElementById('mf-page').value.trim()||'—',desc,severity:document.getElementById('mf-sv').value,status:document.getElementById('mf-st').value,img:mfImg,ts:new Date().toLocaleDateString('en-GB'),source:'manual'};
+  if(editingId){const i=issues.findIndex(x=>x.id===editingId);if(i!==-1)issues[i]=issue;}
+  else issues.push(issue);
+  cancelManual();renderIssues();updateStats();saveState();
+  toast(editingId?'ISSUE UPDATED':`ISSUE #${issues.length} SAVED`);
+}
+
+/* LIST */
+function setFilter(v,btn){activeFilter=v;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));btn.classList.add('active');renderIssues();}
+function renderIssues(){
+  const list=document.getElementById('issuesList');
+  const empty=document.getElementById('emptyState');
+  const filtered=issues.filter(i=>activeFilter==='all'||i.severity===activeFilter||i.status===activeFilter);
+  const proj=document.getElementById('projectName').value;
+  document.getElementById('listTitle').textContent=`// ${(proj||'ALL ISSUES').toUpperCase()}`;
+  if(!issues.length){empty.style.display='block';list.innerHTML='';return;}
+  empty.style.display='none';
+  list.innerHTML=filtered.map((iss,idx)=>`
+    <div class="icard" id="ic-${iss.id}">
+      <div class="ic ic-n">${idx+1}</div>
+      <div class="ic ic-th">${iss.img?`<img src="${iss.img}" onclick="previewImg('${iss.id}')" title="View full"/>`:`<div class="ni">—</div>`}</div>
+      <div class="ic ic-flow" title="${esc(iss.flow)}">${esc(iss.flow)}</div>
+      <div class="ic ic-page" title="${esc(iss.page)}">${esc(iss.page)}</div>
+      <div class="ic ic-de">${esc(iss.desc)}</div>
+      <div class="ic"><span class="badge ${iss.severity}">${iss.severity}</span></div>
+      <div class="ic"><select class="ssel ${iss.status.replace("'","")}" onchange="updStatus(${iss.id},this.value)"><option ${iss.status==='Open'?'selected':''}>Open</option><option ${iss.status==='Fixed'?'selected':''}>Fixed</option><option ${iss.status==='Wontfix'?'selected':''}>Wontfix</option></select></div>
+      <div class="ic ic-ac"><button class="icon-btn" onclick="editIssue(${iss.id})">✏️</button><button class="icon-btn del" onclick="delIssue(${iss.id})">🗑</button></div>
+    </div>
+  `).join('');
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function updStatus(id,val){const i=issues.find(x=>x.id===id);if(i){i.status=val;renderIssues();updateStats();saveState();}}
+function delIssue(id){if(!confirm('Remove this issue?'))return;issues=issues.filter(i=>i.id!==id);renderIssues();updateStats();saveState();}
+function editIssue(id){const iss=issues.find(i=>i.id===id);if(!iss)return;switchTab('list');showManual();document.getElementById('mfTitle').textContent='// EDIT_ISSUE';document.getElementById('mf-flow').value=iss.flow==='—'?'':iss.flow;document.getElementById('mf-page').value=iss.page==='—'?'':iss.page;document.getElementById('mf-de').value=iss.desc;document.getElementById('mf-sv').value=iss.severity;document.getElementById('mf-st').value=iss.status;mfImg=iss.img;editingId=iss.id;renderMfPaste();document.getElementById('manualForm').scrollIntoView({behavior:'smooth'});}
+function previewImg(id){const iss=issues.find(i=>i.id==id);if(!iss||!iss.img)return;document.getElementById('modalImg').src=iss.img;document.getElementById('imgModal').classList.add('open');}
+function closeModal(e){if(!e||e.target===document.getElementById('imgModal'))document.getElementById('imgModal').classList.remove('open');}
+
+/* STATS */
+function updateStats(){
+  document.getElementById('s-total').textContent=issues.length;
+  document.getElementById('s-crit').textContent=issues.filter(i=>i.severity==='Critical').length;
+  document.getElementById('s-open').textContent=issues.filter(i=>i.status==='Open').length;
+  document.getElementById('s-fixed').textContent=issues.filter(i=>i.status==='Fixed').length;
+  document.getElementById('tab-count').textContent=issues.length;
+}
+
+/* EXPORT */
+async function exportExcel(){
+  if(!issues.length){toast('NO ISSUES TO EXPORT');return;}
+  toast('BUILDING EXPORT...');
+  const proj=document.getElementById('projectName').value||'QC Report';
+  const wb=XLSX.utils.book_new();
+  const rows=[['#','Flow Name','Page Name','Description','Severity','Status','Date','Source']];
+  issues.forEach((iss,i)=>rows.push([i+1,iss.flow,iss.page,iss.desc,iss.severity,iss.status,iss.ts,iss.source||'manual']));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:22},{wch:16},{wch:60},{wch:14},{wch:12},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'Issues');
+  const sum=[['QC REPORT',proj],['Exported',new Date().toLocaleDateString('en-GB')],[''],['SEVERITY','COUNT'],['Critical',issues.filter(i=>i.severity==='Critical').length],['Minor',issues.filter(i=>i.severity==='Minor').length],['Suggestion',issues.filter(i=>i.severity==='Suggestion').length],['Total',issues.length],[''],['STATUS','COUNT'],['Open',issues.filter(i=>i.status==='Open').length],['Fixed',issues.filter(i=>i.status==='Fixed').length],["Won't Fix",issues.filter(i=>i.status==='Wontfix').length],[''],['FLOWS',''],[...new Set(issues.map(i=>i.flow))].map(f=>[f,issues.filter(i=>i.flow===f).length]).join(''),[''],['PAGES',''],[...new Set(issues.map(i=>i.page))].map(p=>[p,issues.filter(i=>i.page===p).length]).join('')];
+  const ws2=XLSX.utils.aoa_to_sheet([['QC REPORT',proj],['Exported',new Date().toLocaleDateString('en-GB')],[''],['SEVERITY','COUNT'],['Critical',issues.filter(i=>i.severity==='Critical').length],['Minor',issues.filter(i=>i.severity==='Minor').length],['Suggestion',issues.filter(i=>i.severity==='Suggestion').length],['Total',issues.length],[''],['STATUS','COUNT'],['Open',issues.filter(i=>i.status==='Open').length],['Fixed',issues.filter(i=>i.status==='Fixed').length],["Won't Fix",issues.filter(i=>i.status==='Wontfix').length],[''],['FLOWS COVERED','COUNT'],...[...new Set(issues.map(i=>i.flow))].map(f=>[f,issues.filter(i=>i.flow===f).length]),[''],['PAGES COVERED','COUNT'],...[...new Set(issues.map(i=>i.page))].map(p=>[p,issues.filter(i=>i.page===p).length])]);
+  ws2['!cols']=[{wch:22},{wch:20}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+  const fname=`${proj.replace(/\s+/g,'_')}_QC_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}`;
+  XLSX.writeFile(wb,fname+'.xlsx');
+  await exportHTMLReport(proj,fname);
+}
+
+async function exportHTMLReport(proj,fname){
+  const sc={Critical:'#ff3366',Minor:'#ffcc00',Suggestion:'#00ccff'};
+  const st={Open:'#ff6b6b',Fixed:'#00ff88',Wontfix:'#445577'};
+  const rows=issues.map((iss,i)=>`<tr>
+    <td style="padding:12px 10px;font-size:11px;color:#445577;border-bottom:1px solid #1e1e3a;vertical-align:top;font-family:'Share Tech Mono',monospace;">${i+1}</td>
+    <td style="padding:10px;border-bottom:1px solid #1e1e3a;vertical-align:top;">${iss.img?`<img src="${iss.img}" style="max-width:240px;max-height:150px;object-fit:cover;border:1px solid #1e1e3a;display:block;"/>`:`<div style="width:100px;height:60px;background:#12122a;border:1px solid #1e1e3a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#445577;">NO IMAGE</div>`}</td>
+    <td style="padding:12px 10px;font-size:11px;color:#00ccff;border-bottom:1px solid #1e1e3a;vertical-align:top;">${escHtml(iss.flow)}</td>
+    <td style="padding:12px 10px;font-size:11px;color:#8899cc;border-bottom:1px solid #1e1e3a;vertical-align:top;">${escHtml(iss.page)}</td>
+    <td style="padding:12px 10px;font-size:12px;color:#e0e8ff;border-bottom:1px solid #1e1e3a;vertical-align:top;max-width:380px;line-height:1.6;">${escHtml(iss.desc)}</td>
+    <td style="padding:12px 10px;border-bottom:1px solid #1e1e3a;vertical-align:top;"><span style="border:1px solid ${sc[iss.severity]};color:${sc[iss.severity]};font-size:9px;padding:3px 7px;text-transform:uppercase;letter-spacing:1px;font-family:'Share Tech Mono',monospace;">${iss.severity}</span></td>
+    <td style="padding:12px 10px;border-bottom:1px solid #1e1e3a;vertical-align:top;font-size:10px;color:${st[iss.status]||'#fff'};text-transform:uppercase;letter-spacing:.8px;font-family:'Share Tech Mono',monospace;">${iss.status}</td>
+    <td style="padding:12px 10px;font-size:10px;color:#445577;border-bottom:1px solid #1e1e3a;vertical-align:top;">${escHtml(iss.ts)}</td>
+  </tr>`).join('');
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"/>
+<title>${escHtml(proj)} — QC REPORT</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#080810;color:#e0e8ff;font-family:'Space Mono',monospace;padding:48px;min-height:100vh;}h1{font-family:'Share Tech Mono',monospace;font-size:24px;letter-spacing:4px;text-transform:uppercase;color:#e0e8ff;margin-bottom:4px;}.sub{font-size:10px;color:#445577;letter-spacing:3px;text-transform:uppercase;margin-bottom:32px;display:block;}.stats{display:flex;gap:0;margin-bottom:36px;}.stat{background:#0d0d1a;border:1px solid #1e1e3a;padding:16px 24px;margin-right:2px;}.stat b{display:block;font-size:26px;font-family:'Share Tech Mono',monospace;}.stat span{font-size:9px;color:#445577;text-transform:uppercase;letter-spacing:1.5px;}table{width:100%;border-collapse:collapse;}th{font-size:8px;color:#445577;text-transform:uppercase;letter-spacing:1.5px;padding:10px 10px 8px;text-align:left;border-bottom:1px solid #00ff88;font-family:'Share Tech Mono',monospace;}</style></head>
+<body>
+<h1>${escHtml(proj)}</h1>
+<span class="sub">QC REPORT // EXPORTED ${new Date().toLocaleDateString('en-GB').toUpperCase()} // ${issues.length} ISSUES</span>
+<div class="stats">
+  <div class="stat"><b>${issues.length}</b><span>Total</span></div>
+  <div class="stat"><b style="color:#ff3366">${issues.filter(i=>i.severity==='Critical').length}</b><span>Critical</span></div>
+  <div class="stat"><b style="color:#ffcc00">${issues.filter(i=>i.severity==='Minor').length}</b><span>Minor</span></div>
+  <div class="stat"><b style="color:#ff6b6b">${issues.filter(i=>i.status==='Open').length}</b><span>Open</span></div>
+  <div class="stat"><b style="color:#00ff88">${issues.filter(i=>i.status==='Fixed').length}</b><span>Fixed</span></div>
+</div>
+<table><thead><tr><th>#</th><th>Screenshot</th><th>Flow</th><th>Page</th><th>Description</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead>
+<tbody>${rows}</tbody></table>
+</body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname+'_report.html';a.click();URL.revokeObjectURL(a.href);
+  setTimeout(()=>toast('✓ EXCEL + HTML REPORT DOWNLOADED'),400);
+}
+
+function escHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function flashEl(id){const el=document.getElementById(id);el.style.borderColor='var(--accent2)';el.focus();setTimeout(()=>el.style.borderColor='',1200);}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+
+loadState();
+renderSessionChips();
+updateStats();
+</script>
+</body>
+</html>
