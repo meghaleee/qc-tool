@@ -363,6 +363,7 @@ input[type=range] { accent-color: var(--purple); width: 58px; cursor: pointer; }
     <div class="h-right">
       <button class="btn btn-outline" onclick="showManual()">＋ Manual Issue</button>
       <button class="btn btn-outline" onclick="exportAll()">↓ Export</button>
+      <button class="btn btn-outline" onclick="openSettings()" title="imgbb API key">⚙ Settings</button>
       <button class="btn btn-danger" onclick="openCloseModal()">✕ Close Project</button>
     </div>
   </header>
@@ -547,6 +548,75 @@ input[type=range] { accent-color: var(--purple); width: 58px; cursor: pointer; }
       <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportThenClose()">↓ Export &amp; Close Project</button>
       <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="forceClose()">Close Without Exporting</button>
       <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="closeCloseModal()">Cancel — Keep Working</button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay" id="settingsModal" onclick="closeSettings(event)">
+  <div class="modal-box" style="max-width:480px;">
+    <button class="modal-close" onclick="closeSettings()">✕</button>
+    <h3>// Settings — imgbb API Key</h3>
+
+    <p style="font-size:11px;color:var(--text2);line-height:1.8;margin-bottom:18px;">
+      When you export, screenshots are uploaded to <b style="color:var(--purple);">imgbb</b> (free image hosting) and the Excel file gets a real clickable link in the Screenshot column — no extra files needed.
+    </p>
+
+    <!-- Step by step -->
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px;">
+
+      <div style="font-size:8px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-family:'Share Tech Mono',monospace;margin-bottom:4px;">How to get your free API key</div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);padding:10px 12px;">
+        <div style="min-width:20px;height:20px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Share Tech Mono',monospace;">1</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8;">
+          Go to <a href="https://imgbb.com/signup" target="_blank" style="color:var(--purple);text-decoration:underline;">imgbb.com/signup</a> and create a free account.<br/>
+          <span style="color:var(--muted);font-size:10px;">No credit card required. Takes 30 seconds.</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);padding:10px 12px;">
+        <div style="min-width:20px;height:20px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Share Tech Mono',monospace;">2</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8;">
+          Once logged in, go to <a href="https://api.imgbb.com/" target="_blank" style="color:var(--purple);text-decoration:underline;">api.imgbb.com</a><br/>
+          <span style="color:var(--muted);font-size:10px;">This is the API page for your account.</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);padding:10px 12px;">
+        <div style="min-width:20px;height:20px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Share Tech Mono',monospace;">3</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8;">
+          Click <b style="color:var(--text);">Get API key</b> — you'll see a string of random characters.<br/>
+          <span style="color:var(--muted);font-size:10px;">Looks like: <span style="font-family:'Share Tech Mono',monospace;color:var(--purple);">a1b2c3d4e5f6...</span></span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);padding:10px 12px;">
+        <div style="min-width:20px;height:20px;background:var(--purple);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Share Tech Mono',monospace;">4</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8;">
+          Copy the key and paste it in the field below. Click <b style="color:var(--text);">Save Key</b>.<br/>
+          <span style="color:var(--muted);font-size:10px;">Saved in your browser — you only need to do this once.</span>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:flex-start;background:var(--surface2);border:1px solid var(--border);padding:10px 12px;">
+        <div style="min-width:20px;height:20px;background:var(--green);color:#fff;font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'Share Tech Mono',monospace;">✓</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.8;">
+          Now when you click <b style="color:var(--text);">↓ Export</b>, screenshots upload automatically and your Excel gets a live <span style="font-family:'Share Tech Mono',monospace;color:var(--purple);font-size:10px;">https://</span> link per issue.
+        </div>
+      </div>
+
+    </div>
+
+    <div class="mf-g" style="margin-bottom:12px;">
+      <label>Your imgbb API Key</label>
+      <input type="text" id="imgbbKeyInput" placeholder="Paste your API key here..." style="font-family:'Share Tech Mono',monospace;letter-spacing:1px;"/>
+    </div>
+    <div id="keyStatus" style="font-size:10px;margin-bottom:14px;min-height:16px;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;align-items:center;">
+      <span id="keyIndicator" style="font-size:10px;color:var(--muted);margin-right:auto;"></span>
+      <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
     </div>
   </div>
 </div>
@@ -874,14 +944,71 @@ function wipeProject(){
   toast('Project closed');
 }
 
-/* ═══ EXPORT — single Excel file, screenshots embedded as thumbnails ═══ */
+/* ═══ SETTINGS — imgbb API key ═══ */
+function getApiKey(){ return localStorage.getItem('qc_imgbb_key')||''; }
+function openSettings(){
+  const k=getApiKey();
+  document.getElementById('imgbbKeyInput').value=k;
+  document.getElementById('keyStatus').textContent='';
+  document.getElementById('keyIndicator').textContent=k?'✓ Key saved':'No key saved — export will skip image links';
+  document.getElementById('keyIndicator').style.color=k?'var(--green)':'var(--muted)';
+  document.getElementById('settingsModal').classList.add('open');
+  setTimeout(()=>document.getElementById('imgbbKeyInput').focus(),60);
+}
+function closeSettings(e){ if(!e||e.target===document.getElementById('settingsModal')) document.getElementById('settingsModal').classList.remove('open'); }
+function saveApiKey(){
+  const k=document.getElementById('imgbbKeyInput').value.trim();
+  if(!k){ document.getElementById('keyStatus').textContent='⚠ Key cannot be empty'; document.getElementById('keyStatus').style.color='var(--red)'; return; }
+  localStorage.setItem('qc_imgbb_key',k);
+  document.getElementById('keyStatus').textContent='✓ Key saved!'; document.getElementById('keyStatus').style.color='var(--green)';
+  setTimeout(()=>closeSettings(),900);
+}
+
+/* ═══ EXPORT — Excel with imgbb image links ═══ */
+async function uploadToImgbb(base64, apiKey){
+  // Strip data URL prefix
+  const b64=base64.replace(/^data:image\/\w+;base64,/,'');
+  const fd=new FormData();
+  fd.append('key', apiKey);
+  fd.append('image', b64);
+  const res=await fetch('https://api.imgbb.com/1/upload', {method:'POST', body:fd});
+  if(!res.ok) throw new Error(`imgbb ${res.status}`);
+  const json=await res.json();
+  if(!json.success) throw new Error(json.error?.message||'Upload failed');
+  return json.data.url; // direct image URL
+}
+
 async function exportAll(){
   if(!project||!project.issues.length){toast('No issues to export');return;}
-  toast('Building Excel...');
+  const apiKey=getApiKey();
+  if(!apiKey){
+    toast('⚠ No imgbb key — open Settings first');
+    openSettings();
+    return;
+  }
+
+  toast('Uploading screenshots...');
   const proj=project.name;
   const safe=proj.replace(/\s+/g,'_');
   const dateStr=new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
   const xlsxName=`${safe}_QC_${dateStr}.xlsx`;
+
+  // Upload all screenshots to imgbb, collect URLs
+  const imgUrls={}; // issue id -> https url
+  const withImg=project.issues.filter(i=>i.img);
+  for(let idx=0;idx<withImg.length;idx++){
+    const iss=withImg[idx];
+    toast(`Uploading screenshot ${idx+1} of ${withImg.length}...`);
+    try{
+      imgUrls[iss.id]=await uploadToImgbb(iss.img, apiKey);
+    } catch(e){
+      console.warn('imgbb upload failed for issue',iss.id,e);
+      imgUrls[iss.id]=null;
+    }
+  }
+
+  toast('Building Excel...');
+  await new Promise(r=>setTimeout(r,200));
 
   const wb=new ExcelJS.Workbook();
   wb.creator='QC IssueLog'; wb.created=new Date();
@@ -889,19 +1016,21 @@ async function exportAll(){
   /* ── Issues sheet ── */
   const ws=wb.addWorksheet('Issues');
   ws.columns=[
-    {header:'#',key:'num',width:4},
-    {header:'Flow',key:'flow',width:22},
-    {header:'Page',key:'page',width:16},
-    {header:'Description',key:'desc',width:55},
-    {header:'Severity',key:'sv',width:13},
-    {header:'Status',key:'st',width:12},
-    {header:'Date',key:'ts',width:13},
-    {header:'Screenshot',key:'img',width:28},
-    {header:'Source',key:'src',width:10},
+    {header:'#',        width:4},
+    {header:'Flow',     width:22},
+    {header:'Page',     width:16},
+    {header:'Description', width:55},
+    {header:'Severity', width:13},
+    {header:'Status',   width:12},
+    {header:'Date',     width:13},
+    {header:'Screenshot', width:26},
+    {header:'Source',   width:10},
   ];
-  const hdrRow=ws.getRow(1);
-  hdrRow.height=20;
-  hdrRow.eachCell(c=>{
+
+  // Header row style
+  const hdr=ws.getRow(1);
+  hdr.height=20;
+  hdr.eachCell(c=>{
     c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1a1a2e'}};
     c.font={bold:true,color:{argb:'FF9b7fff'},name:'Courier New',size:9};
     c.alignment={vertical:'middle'};
@@ -911,20 +1040,20 @@ async function exportAll(){
   const svC={Critical:'FFf45b69',Minor:'FFf5c842',Suggestion:'FF808080'};
   const stC={Open:'FFf5a623',Fixed:'FF4caf7d',Wontfix:'FF5a5a5a'};
 
-  for(let i=0;i<project.issues.length;i++){
-    const iss=project.issues[i];
+  project.issues.forEach((iss,i)=>{
     const ri=i+2;
     const row=ws.getRow(ri);
-    row.height=80;
+    row.height=22;
     const bg=i%2===0?'FF161616':'FF1a1a1a';
-    const setC=(col,val,fc='FFf0f0f0',bold=false,align='left')=>{
+    const setC=(col,val,fc='FFf0f0f0',bold=false)=>{
       const c=row.getCell(col);
-      c.value=val; c.font={name:'Courier New',size:9,color:{argb:fc},bold};
+      c.value=val;
+      c.font={name:'Courier New',size:9,color:{argb:fc},bold};
       c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
-      c.alignment={vertical:'middle',wrapText:true,horizontal:align};
+      c.alignment={vertical:'middle',wrapText:true};
       c.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
     };
-    setC(1,i+1,'FFa0a0a0',false,'center');
+    setC(1,i+1,'FFa0a0a0');
     setC(2,iss.flow,'FF9b7fff');
     setC(3,iss.page,'FFa0a0a0');
     setC(4,iss.desc);
@@ -932,32 +1061,31 @@ async function exportAll(){
     setC(6,iss.status,stC[iss.status]||'FFf0f0f0');
     setC(7,iss.ts,'FF5a5a5a');
     setC(9,iss.source||'manual','FF5a5a5a');
-    // Screenshot cell
-    const ic=row.getCell(8);
-    ic.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0a0a0a'}};
-    ic.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
-    if(iss.img){
-      const b64=iss.img.replace(/^data:image\/\w+;base64,/,'');
-      const imgId=wb.addImage({base64:b64,extension:'png'});
-      ws.addImage(imgId,{tl:{col:7,row:ri-1},br:{col:8,row:ri},editAs:'oneCell'});
+
+    // Screenshot cell — hyperlink if upload succeeded
+    const sc=row.getCell(8);
+    sc.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+    sc.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
+    sc.alignment={vertical:'middle',horizontal:'center'};
+    const url=imgUrls[iss.id];
+    if(url){
+      sc.value={text:'View Screenshot →', hyperlink:url};
+      sc.font={name:'Courier New',size:9,color:{argb:'FF9b7fff'},underline:true};
+    } else if(iss.img){
+      sc.value='Upload failed';
+      sc.font={name:'Courier New',size:8,color:{argb:'FFf45b69'}};
     } else {
-      ic.value='—'; ic.font={name:'Courier New',size:8,color:{argb:'FF5a5a5a'}};
-      ic.alignment={vertical:'middle',horizontal:'center'};
+      sc.value='—';
+      sc.font={name:'Courier New',size:8,color:{argb:'FF5a5a5a'}};
     }
-  }
+  });
 
   /* ── Summary sheet ── */
   const ws2=wb.addWorksheet('Summary');
-  ws2.columns=[{width:22},{width:55}];
+  ws2.columns=[{width:22},{width:50}];
   const sr=(a,b,bold=false,fc='FFf0f0f0')=>{
-    const r=ws2.addRow([a,b]);
-    r.height=16;
-    r.eachCell(c=>{
-      c.font={name:'Courier New',size:9,bold,color:{argb:fc}};
-      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF161616'}};
-      c.alignment={vertical:'middle',wrapText:true};
-      c.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
-    });
+    const r=ws2.addRow([a,b]); r.height=16;
+    r.eachCell(c=>{ c.font={name:'Courier New',size:9,bold,color:{argb:fc}}; c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF161616'}}; c.alignment={vertical:'middle',wrapText:true}; c.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}}; });
   };
   sr('QC REPORT',proj,true,'FF9b7fff');
   sr('Exported',new Date().toLocaleDateString('en-GB'));
@@ -981,12 +1109,10 @@ async function exportAll(){
 
   const buf=await wb.xlsx.writeBuffer();
   saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),xlsxName);
-  setTimeout(()=>toast('✓ Excel with embedded screenshots downloaded'),500);
+  const uploaded=Object.values(imgUrls).filter(Boolean).length;
+  const failed=Object.values(imgUrls).filter(v=>v===null).length;
+  setTimeout(()=>toast(`✓ Excel downloaded — ${uploaded} screenshot link${uploaded!==1?'s':''} embedded${failed?` (${failed} failed)`:''}` ),500);
 }
-
-// STUB — keep variable name alive so no reference errors
-const _exportUnused=null;
-
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function flashEl(id){const el=document.getElementById(id);el.style.borderColor='var(--red)';el.focus();setTimeout(()=>el.style.borderColor='',1200);}
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
