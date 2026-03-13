@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>QC // IssueLog</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 <style>
 :root {
   --bg:        #0e0e0e;
@@ -873,152 +874,118 @@ function wipeProject(){
   toast('Project closed');
 }
 
-/* ═══ EXPORT ═══ */
+/* ═══ EXPORT — single Excel file, screenshots embedded as thumbnails ═══ */
 async function exportAll(){
   if(!project||!project.issues.length){toast('No issues to export');return;}
-  toast('Building export...');
+  toast('Building Excel...');
   const proj=project.name;
+  const safe=proj.replace(/\s+/g,'_');
   const dateStr=new Date().toLocaleDateString('en-GB').replace(/\//g,'-');
-  const fname=`${proj.replace(/\s+/g,'_')}_QC_${dateStr}`;
-  const imgFolder=`${proj.replace(/\s+/g,'_')}_screenshots`;
+  const xlsxName=`${safe}_QC_${dateStr}.xlsx`;
 
-  /* ── 1. Download each screenshot as individual PNG ── */
-  const imgFilenames = {}; // id -> filename
-  project.issues.forEach((iss, i) => {
-    if (!iss.img) return;
-    const num = String(i+1).padStart(3,'0');
-    const filename = `${imgFolder}/issue_${num}.png`;
-    imgFilenames[iss.id] = filename;
-    // trigger download of each PNG
-    const a = document.createElement('a');
-    a.href = iss.img;
-    a.download = filename;
-    a.click();
+  const wb=new ExcelJS.Workbook();
+  wb.creator='QC IssueLog'; wb.created=new Date();
+
+  /* ── Issues sheet ── */
+  const ws=wb.addWorksheet('Issues');
+  ws.columns=[
+    {header:'#',key:'num',width:4},
+    {header:'Flow',key:'flow',width:22},
+    {header:'Page',key:'page',width:16},
+    {header:'Description',key:'desc',width:55},
+    {header:'Severity',key:'sv',width:13},
+    {header:'Status',key:'st',width:12},
+    {header:'Date',key:'ts',width:13},
+    {header:'Screenshot',key:'img',width:28},
+    {header:'Source',key:'src',width:10},
+  ];
+  const hdrRow=ws.getRow(1);
+  hdrRow.height=20;
+  hdrRow.eachCell(c=>{
+    c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF1a1a2e'}};
+    c.font={bold:true,color:{argb:'FF9b7fff'},name:'Courier New',size:9};
+    c.alignment={vertical:'middle'};
+    c.border={bottom:{style:'medium',color:{argb:'FF9b7fff'}}};
   });
 
-  /* ── 2. Build Excel with hyperlink column ── */
-  await new Promise(r=>setTimeout(r,300)); // slight delay after PNG kicks
-  const wb = XLSX.utils.book_new();
+  const svC={Critical:'FFf45b69',Minor:'FFf5c842',Suggestion:'FF808080'};
+  const stC={Open:'FFf5a623',Fixed:'FF4caf7d',Wontfix:'FF5a5a5a'};
 
-  // Issues sheet — with screenshot filename as plain text (hyperlinks noted in instructions)
-  const header = ['#','Flow Name','Page Name','Description','Severity','Status','Date','Screenshot File','Source'];
-  const rows = [header];
-  project.issues.forEach((iss,i) => {
-    const imgFile = imgFilenames[iss.id] || '(no screenshot)';
-    rows.push([i+1, iss.flow, iss.page, iss.desc, iss.severity, iss.status, iss.ts, imgFile, iss.source||'manual']);
-  });
+  for(let i=0;i<project.issues.length;i++){
+    const iss=project.issues[i];
+    const ri=i+2;
+    const row=ws.getRow(ri);
+    row.height=80;
+    const bg=i%2===0?'FF161616':'FF1a1a1a';
+    const setC=(col,val,fc='FFf0f0f0',bold=false,align='left')=>{
+      const c=row.getCell(col);
+      c.value=val; c.font={name:'Courier New',size:9,color:{argb:fc},bold};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:bg}};
+      c.alignment={vertical:'middle',wrapText:true,horizontal:align};
+      c.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
+    };
+    setC(1,i+1,'FFa0a0a0',false,'center');
+    setC(2,iss.flow,'FF9b7fff');
+    setC(3,iss.page,'FFa0a0a0');
+    setC(4,iss.desc);
+    setC(5,iss.severity,svC[iss.severity]||'FFf0f0f0',true);
+    setC(6,iss.status,stC[iss.status]||'FFf0f0f0');
+    setC(7,iss.ts,'FF5a5a5a');
+    setC(9,iss.source||'manual','FF5a5a5a');
+    // Screenshot cell
+    const ic=row.getCell(8);
+    ic.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF0a0a0a'}};
+    ic.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
+    if(iss.img){
+      const b64=iss.img.replace(/^data:image\/\w+;base64,/,'');
+      const imgId=wb.addImage({base64:b64,extension:'png'});
+      ws.addImage(imgId,{tl:{col:7,row:ri-1},br:{col:8,row:ri},editAs:'oneCell'});
+    } else {
+      ic.value='—'; ic.font={name:'Courier New',size:8,color:{argb:'FF5a5a5a'}};
+      ic.alignment={vertical:'middle',horizontal:'center'};
+    }
+  }
 
-  const ws = XLSX.utils.aoa_to_sheet(rows);
+  /* ── Summary sheet ── */
+  const ws2=wb.addWorksheet('Summary');
+  ws2.columns=[{width:22},{width:55}];
+  const sr=(a,b,bold=false,fc='FFf0f0f0')=>{
+    const r=ws2.addRow([a,b]);
+    r.height=16;
+    r.eachCell(c=>{
+      c.font={name:'Courier New',size:9,bold,color:{argb:fc}};
+      c.fill={type:'pattern',pattern:'solid',fgColor:{argb:'FF161616'}};
+      c.alignment={vertical:'middle',wrapText:true};
+      c.border={bottom:{style:'thin',color:{argb:'FF2a2a2a'}}};
+    });
+  };
+  sr('QC REPORT',proj,true,'FF9b7fff');
+  sr('Exported',new Date().toLocaleDateString('en-GB'));
+  sr('','');
+  sr('SEVERITY','COUNT',true,'FF9b7fff');
+  sr('Critical',project.issues.filter(i=>i.severity==='Critical').length,false,'FFf45b69');
+  sr('Minor',project.issues.filter(i=>i.severity==='Minor').length,false,'FFf5c842');
+  sr('Suggestion',project.issues.filter(i=>i.severity==='Suggestion').length,false,'FF808080');
+  sr('Total',project.issues.length,true);
+  sr('','');
+  sr('STATUS','COUNT',true,'FF9b7fff');
+  sr('Open',project.issues.filter(i=>i.status==='Open').length,false,'FFf5a623');
+  sr('Fixed',project.issues.filter(i=>i.status==='Fixed').length,false,'FF4caf7d');
+  sr("Won't Fix",project.issues.filter(i=>i.status==='Wontfix').length,false,'FF5a5a5a');
+  sr('','');
+  sr('FLOWS','COUNT',true,'FF9b7fff');
+  [...new Set(project.issues.map(i=>i.flow))].forEach(f=>sr(f,project.issues.filter(i=>i.flow===f).length));
+  sr('','');
+  sr('PAGES','COUNT',true,'FF9b7fff');
+  [...new Set(project.issues.map(i=>i.page))].forEach(p=>sr(p,project.issues.filter(i=>i.page===p).length));
 
-  // Add hyperlinks to the screenshot column (col H = index 7) for rows that have images
-  project.issues.forEach((iss,i) => {
-    if (!imgFilenames[iss.id]) return;
-    const cellRef = XLSX.utils.encode_cell({r: i+1, c: 7}); // row i+1 (0-indexed, skip header), col 7
-    if (!ws[cellRef]) return;
-    ws[cellRef].l = { Target: imgFilenames[iss.id], Tooltip: `Open screenshot for issue ${i+1}` };
-    ws[cellRef].s = { font: { color: { rgb: '9b7fff' }, underline: true } };
-  });
-
-  ws['!cols']=[{wch:4},{wch:22},{wch:16},{wch:55},{wch:14},{wch:12},{wch:12},{wch:38},{wch:10}];
-  XLSX.utils.book_append_sheet(wb, ws, 'Issues');
-
-  // Instructions sheet explaining the screenshot folder
-  const wsInstr = XLSX.utils.aoa_to_sheet([
-    ['HOW TO USE THIS EXPORT'],[''],
-    ['This Excel file was exported alongside a folder of screenshot images.'],
-    [''],
-    ['Screenshot files are in:', `${imgFolder}/`],
-    ['The "Screenshot File" column in the Issues sheet shows the filename for each issue.'],
-    ['Open the matching file from the screenshots folder to view the annotated image.'],
-    [''],
-    ['For a fully visual report with screenshots embedded, open the _report.html file.'],
-    [''],['Project', proj],['Exported', new Date().toLocaleDateString('en-GB')],['Total Issues', project.issues.length],
-  ]);
-  wsInstr['!cols']=[{wch:40},{wch:50}];
-  XLSX.utils.book_append_sheet(wb, wsInstr, 'How to Use');
-
-  // Summary sheet
-  const ws2 = XLSX.utils.aoa_to_sheet([
-    ['QC Report', proj],['Exported', new Date().toLocaleDateString('en-GB')],[''],
-    ['Severity','Count'],
-    ['Critical', project.issues.filter(i=>i.severity==='Critical').length],
-    ['Minor', project.issues.filter(i=>i.severity==='Minor').length],
-    ['Suggestion', project.issues.filter(i=>i.severity==='Suggestion').length],
-    ['Total', project.issues.length],[''],
-    ['Status','Count'],
-    ['Open', project.issues.filter(i=>i.status==='Open').length],
-    ['Fixed', project.issues.filter(i=>i.status==='Fixed').length],
-    ["Won't Fix", project.issues.filter(i=>i.status==='Wontfix').length],[''],
-    ['Flows','Count'],...[...new Set(project.issues.map(i=>i.flow))].map(f=>[f,project.issues.filter(i=>i.flow===f).length]),[''],
-    ['Pages','Count'],...[...new Set(project.issues.map(i=>i.page))].map(p=>[p,project.issues.filter(i=>i.page===p).length]),
-  ]);
-  ws2['!cols']=[{wch:22},{wch:18}];
-  XLSX.utils.book_append_sheet(wb, ws2, 'Summary');
-
-  await new Promise(r=>setTimeout(r,200));
-  XLSX.writeFile(wb, fname+'.xlsx');
-
-  /* ── 3. HTML visual report with embedded images ── */
-  await new Promise(r=>setTimeout(r,300));
-  const sc={Critical:'#f45b69',Minor:'#f5c842',Suggestion:'#a0a0a0'};
-  const st={Open:'#f5a623',Fixed:'#4caf7d',Wontfix:'#5a5a5a'};
-  const trs=project.issues.map((iss,i)=>`<tr>
-    <td style="padding:10px;font-size:11px;color:#5a5a5a;border-bottom:1px solid #2a2a2a;vertical-align:top;text-align:center;font-family:'Share Tech Mono',monospace;">${i+1}</td>
-    <td style="padding:8px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top;">
-      ${iss.img
-        ? `<img src="${iss.img}" style="max-width:200px;max-height:130px;object-fit:cover;border:1px solid #333;display:block;" alt="Issue ${i+1} screenshot"/>`
-        : `<div style="width:90px;height:58px;background:#1e1e1e;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#5a5a5a;">No image</div>`}
-    </td>
-    <td style="padding:10px;font-size:11px;color:#9b7fff;border-bottom:1px solid #2a2a2a;vertical-align:top;">${escH(iss.flow)}</td>
-    <td style="padding:10px;font-size:11px;color:#a0a0a0;border-bottom:1px solid #2a2a2a;vertical-align:top;">${escH(iss.page)}</td>
-    <td style="padding:10px;font-size:11px;color:#f0f0f0;border-bottom:1px solid #2a2a2a;vertical-align:top;max-width:340px;line-height:1.6;">${escH(iss.desc)}</td>
-    <td style="padding:10px;border-bottom:1px solid #2a2a2a;vertical-align:top;"><span style="border:1px solid ${sc[iss.severity]};color:${sc[iss.severity]};font-size:9px;padding:2px 6px;text-transform:uppercase;letter-spacing:.6px;">${iss.severity}</span></td>
-    <td style="padding:10px;border-bottom:1px solid #2a2a2a;vertical-align:top;font-size:10px;color:${st[iss.status]||'#f0f0f0'};text-transform:uppercase;">${iss.status}</td>
-    <td style="padding:10px;font-size:10px;color:#5a5a5a;border-bottom:1px solid #2a2a2a;vertical-align:top;">${escH(iss.ts)}</td>
-  </tr>`).join('');
-
-  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
-<title>${escH(proj)} — QC Report</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
-<style>
-*{box-sizing:border-box;margin:0;padding:0;}
-body{background:#0e0e0e;color:#f0f0f0;font-family:'Space Mono',monospace;padding:48px;font-size:12px;}
-h1{font-family:'Share Tech Mono',monospace;font-size:20px;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}
-.sub{font-size:10px;color:#5a5a5a;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:28px;}
-.stats{display:flex;gap:2px;margin-bottom:32px;}
-.stat{background:#161616;border:1px solid #2a2a2a;padding:14px 22px;}
-.stat b{display:block;font-size:22px;font-family:'Share Tech Mono',monospace;}
-.stat span{font-size:9px;color:#5a5a5a;text-transform:uppercase;letter-spacing:1px;}
-table{width:100%;border-collapse:collapse;}
-th{font-size:9px;color:#5a5a5a;text-transform:uppercase;letter-spacing:1.2px;padding:10px 10px 8px;text-align:left;border-bottom:2px solid #9b7fff;font-family:'Share Tech Mono',monospace;}
-tr:hover td{background:rgba(255,255,255,.015);}
-</style>
-</head><body>
-<h1>${escH(proj)}</h1>
-<span class="sub">QC Report · ${new Date().toLocaleDateString('en-GB')} · ${project.issues.length} issues</span>
-<div class="stats">
-  <div class="stat"><b>${project.issues.length}</b><span>Total</span></div>
-  <div class="stat"><b style="color:#f45b69">${project.issues.filter(i=>i.severity==='Critical').length}</b><span>Critical</span></div>
-  <div class="stat"><b style="color:#f5c842">${project.issues.filter(i=>i.severity==='Minor').length}</b><span>Minor</span></div>
-  <div class="stat"><b style="color:#f5a623">${project.issues.filter(i=>i.status==='Open').length}</b><span>Open</span></div>
-  <div class="stat"><b style="color:#4caf7d">${project.issues.filter(i=>i.status==='Fixed').length}</b><span>Fixed</span></div>
-</div>
-<table>
-<thead><tr><th>#</th><th>Screenshot</th><th>Flow</th><th>Page</th><th>Description</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead>
-<tbody>${trs}</tbody>
-</table>
-</body></html>`;
-
-  const blob=new Blob([html],{type:'text/html'});
-  const a2=document.createElement('a');
-  a2.href=URL.createObjectURL(blob);
-  a2.download=fname+'_report.html';
-  a2.click();
-  URL.revokeObjectURL(a2.href);
-
-  const imgCount=project.issues.filter(i=>i.img).length;
-  setTimeout(()=>toast(`✓ Excel + ${imgCount} PNG screenshot${imgCount!==1?'s':''} + HTML report downloaded`),600);
+  const buf=await wb.xlsx.writeBuffer();
+  saveAs(new Blob([buf],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}),xlsxName);
+  setTimeout(()=>toast('✓ Excel with embedded screenshots downloaded'),500);
 }
+
+// STUB — keep variable name alive so no reference errors
+const _exportUnused=null;
 
 function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
 function flashEl(id){const el=document.getElementById(id);el.style.borderColor='var(--red)';el.focus();setTimeout(()=>el.style.borderColor='',1200);}
