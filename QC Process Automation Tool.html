@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>QC // IssueLog</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:       #0e0e0e;
+  --surface:  #161616;
+  --surface2: #1e1e1e;
+  --surface3: #252525;
+  --border:   #2a2a2a;
+  --border2:  #333;
+  --text:     #f0f0f0;
+  --text2:    #a0a0a0;
+  --muted:    #5a5a5a;
+  --purple:   #9b7fff;
+  --purple-bg:rgba(155,127,255,.1);
+  --purple-bd:rgba(155,127,255,.35);
+  --red:      #f45b69;
+  --red-bg:   rgba(244,91,105,.1);
+  --yellow:   #f5c842;
+  --yellow-bg:rgba(245,200,66,.1);
+  --orange:   #f5a623;
+  --green:    #4caf7d;
+  --green-bg: rgba(76,175,125,.1);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body,input,select,textarea,button{font-family:'Space Mono',monospace;}
+body{background:var(--bg);color:var(--text);min-height:100vh;font-size:12px;line-height:1.5;}
+
+/* ── SCREEN SWITCHER ── */
+#startScreen{display:flex;}
+#appScreen{display:none;}
+
+/* ══════════════════════════════
+   START SCREEN
+══════════════════════════════ */
+#startScreen{
+  min-height:100vh;
+  align-items:center;justify-content:center;flex-direction:column;
+  background:var(--bg);
+  gap:0;
+}
+.start-inner{
+  width:100%;max-width:480px;
+  display:flex;flex-direction:column;align-items:center;
+  gap:0;
+}
+.start-logo{
+  display:flex;align-items:center;gap:14px;margin-bottom:48px;
+}
+.start-mark{
+  width:44px;height:44px;border:1px solid var(--purple);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--purple);
+}
+.start-title{
+  font-family:'Share Tech Mono',monospace;
+  font-size:22px;letter-spacing:3px;text-transform:uppercase;color:var(--text);
+}
+.start-title span{color:var(--purple);}
+.start-sub{font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;display:block;margin-top:2px;}
+
+.start-card{
+  width:100%;background:var(--surface);
+  border:1px solid var(--border2);
+  border-top:2px solid var(--purple);
+  padding:36px;
+}
+.start-card h2{
+  font-family:'Share Tech Mono',monospace;
+  font-size:13px;letter-spacing:2px;text-transform:uppercase;
+  color:var(--purple);margin-bottom:6px;
+}
+.start-card p{font-size:11px;color:var(--text2);margin-bottom:24px;line-height:1.8;}
+
+.start-label{
+  font-size:9px;color:var(--muted);text-transform:uppercase;
+  letter-spacing:1.5px;font-family:'Share Tech Mono',monospace;
+  display:block;margin-bottom:7px;
+}
+.start-input{
+  width:100%;background:var(--surface2);border:1px solid var(--border2);
+  color:var(--text);font-family:'Share Tech Mono',monospace;
+  font-size:16px;letter-spacing:2px;text-transform:uppercase;
+  padding:14px 16px;outline:none;transition:border-color .2s;
+  margin-bottom:20px;
+}
+.start-input:focus{border-color:var(--purple);outline:2px solid var(--purple-bg);}
+.start-input::placeholder{color:var(--muted);}
+
+.start-btn{
+  width:100%;background:var(--purple);color:#fff;
+  font-family:'Space Mono',monospace;font-size:11px;font-weight:700;
+  padding:14px;border:none;cursor:pointer;
+  letter-spacing:1px;text-transform:uppercase;transition:all .15s;
+}
+.start-btn:hover{background:#b090ff;}
+.start-btn:disabled{background:var(--surface3);color:var(--muted);cursor:not-allowed;}
+
+.resume-card{
+  width:100%;margin-top:12px;
+  background:var(--surface);border:1px solid var(--border2);
+  padding:20px 28px;display:flex;align-items:center;justify-content:space-between;gap:16px;
+  cursor:pointer;transition:border-color .2s;
+}
+.resume-card:hover{border-color:var(--purple);}
+.resume-info{display:flex;flex-direction:column;gap:4px;}
+.resume-name{font-family:'Share Tech Mono',monospace;font-size:14px;letter-spacing:1px;text-transform:uppercase;color:var(--text);}
+.resume-meta{font-size:10px;color:var(--muted);}
+.resume-btn{
+  background:transparent;color:var(--purple);border:1px solid var(--purple-bd);
+  font-family:'Space Mono',monospace;font-size:10px;font-weight:700;
+  padding:8px 16px;cursor:pointer;letter-spacing:.8px;text-transform:uppercase;
+  transition:all .15s;white-space:nowrap;flex-shrink:0;
+}
+.resume-btn:hover{background:var(--purple-bg);}
+
+/* ══════════════════════════════
+   APP SCREEN
+══════════════════════════════ */
+#appScreen{flex-direction:column;min-height:100vh;}
+
+/* HEADER */
+header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 28px;background:var(--surface);
+  border-bottom:1px solid var(--border2);
+  position:sticky;top:0;z-index:200;flex-shrink:0;
+}
+.h-left{display:flex;align-items:center;gap:16px;}
+.logo-mark{
+  width:30px;height:30px;border:1px solid var(--purple);
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:var(--purple);
+}
+.proj-name{
+  font-family:'Share Tech Mono',monospace;font-size:14px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text);
+}
+.proj-name span{color:var(--purple);}
+.proj-divider{color:var(--border2);font-size:16px;}
+.proj-label{
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:1px;color:var(--muted);
+}
+
+.h-center{
+  display:flex;gap:14px;
+}
+.stat-item{display:flex;flex-direction:column;align-items:center;gap:1px;}
+.stat-num{font-family:'Share Tech Mono',monospace;font-size:16px;font-weight:700;color:var(--text);}
+.stat-num.red{color:var(--red);}
+.stat-num.orange{color:var(--orange);}
+.stat-num.green{color:var(--green);}
+.stat-lbl{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;}
+.stat-sep{width:1px;background:var(--border2);margin:4px 0;}
+
+.h-right{display:flex;gap:8px;align-items:center;}
+
+.btn{
+  font-family:'Space Mono',monospace;font-size:10px;font-weight:700;
+  padding:8px 16px;border:none;cursor:pointer;
+  letter-spacing:.8px;text-transform:uppercase;transition:all .15s;
+  display:inline-flex;align-items:center;gap:5px;
+}
+.btn-primary{background:var(--purple);color:#fff;}
+.btn-primary:hover{background:#b090ff;}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2);}
+.btn-outline:hover{border-color:var(--purple);color:var(--purple);}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(244,91,105,.3);}
+.btn-danger:hover{background:var(--red-bg);border-color:var(--red);}
+.btn-ghost{background:transparent;color:var(--text2);border:1px solid var(--border);font-size:9px;padding:5px 10px;cursor:pointer;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:.5px;transition:all .15s;}
+.btn-ghost:hover{color:var(--text);border-color:var(--border2);}
+
+/* MAIN SPLIT LAYOUT */
+.app-body{
+  display:grid;
+  grid-template-columns:1fr 380px;
+  flex:1;
+  overflow:hidden;
+  height:calc(100vh - 57px);
+}
+
+/* LEFT — ANNOTATOR */
+.ann-pane{
+  display:flex;flex-direction:column;
+  border-right:1px solid var(--border2);
+  overflow:hidden;
+}
+
+.ann-pane-header{
+  padding:14px 20px 12px;
+  background:var(--surface);border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.ann-pane-header h2{
+  font-family:'Share Tech Mono',monospace;font-size:11px;
+  letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:2px;
+}
+.ann-pane-header p{font-size:10px;color:var(--muted);}
+
+/* DROP HERO */
+.drop-hero{
+  flex:1;border:1px dashed var(--border2);margin:16px;
+  background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;transition:all .2s;text-align:center;padding:40px;gap:10px;
+}
+.drop-hero:hover,.drop-hero.drag-over{border-color:var(--purple);background:var(--purple-bg);}
+.drop-hero h3{font-family:'Share Tech Mono',monospace;font-size:18px;letter-spacing:2px;text-transform:uppercase;}
+.drop-hero h3 span{color:var(--purple);}
+.drop-hero p{font-size:10px;color:var(--text2);line-height:1.9;}
+.key{display:inline-block;background:var(--surface2);border:1px solid var(--border2);padding:2px 8px;font-size:9px;color:var(--purple);letter-spacing:.8px;}
+.or-sep{color:var(--muted);margin:0 6px;font-size:10px;}
+
+/* CANVAS AREA */
+.canvas-area{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+
+#canvasToolbar{
+  display:none;align-items:stretch;background:var(--surface);
+  border-bottom:1px solid var(--border2);flex-shrink:0;overflow-x:auto;
+}
+.tb-section{display:flex;flex-direction:column;padding:8px 14px;border-right:1px solid var(--border);gap:5px;flex-shrink:0;}
+.tb-section:last-child{border-right:none;margin-left:auto;}
+.tb-lbl{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-family:'Share Tech Mono',monospace;}
+.tb-content{display:flex;align-items:center;gap:6px;}
+.tool-item{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.tool-item span{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;}
+.tool-btn{width:28px;height:28px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.tool-btn.active{border-color:var(--purple);background:var(--purple-bg);}
+.tool-btn:hover:not(.active){background:var(--surface3);}
+.color-item{display:flex;flex-direction:column;align-items:center;gap:2px;}
+.color-item span{font-size:7px;color:var(--muted);text-transform:uppercase;}
+.cswatch{width:20px;height:20px;border:2px solid transparent;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.cswatch.active{border-color:#fff;transform:scale(1.15);}
+input[type=range]{accent-color:var(--purple);width:60px;cursor:pointer;}
+.size-val{font-size:10px;color:var(--purple);min-width:16px;text-align:center;}
+
+#canvasWrap{flex:1;overflow:auto;background:#080808;display:none;max-height:100%;}
+#annotCanvas{display:block;cursor:crosshair;}
+
+/* ISSUE QUICK-ADD (below canvas) */
+#quickAdd{
+  display:none;flex-direction:column;
+  background:var(--surface);border-top:2px solid var(--purple);
+  flex-shrink:0;
+}
+.qa-top{padding:14px 18px 10px;}
+.qa-top h3{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--purple);margin-bottom:4px;}
+.qa-hint{font-size:10px;color:var(--text2);line-height:1.6;}
+.qa-hint span{color:var(--purple);font-weight:700;}
+
+.qa-shared{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 18px 12px;border-bottom:1px solid var(--border);}
+.f-group{display:flex;flex-direction:column;gap:5px;}
+.f-group label{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;font-family:'Share Tech Mono',monospace;}
+.f-group input,.f-group select{background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Space Mono',monospace;font-size:11px;padding:8px 10px;outline:none;transition:border-color .2s;width:100%;}
+.f-group input:focus,.f-group select:focus{border-color:var(--purple);}
+.f-group input::placeholder{color:var(--muted);}
+.f-group select option{background:var(--surface2);}
+
+/* PIN ROWS inside quick add */
+.pins-header{display:grid;grid-template-columns:44px 1fr 130px 110px 32px;padding:7px 18px 4px;background:var(--surface2);border-bottom:1px solid var(--border);}
+.ph{font-size:7px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Share Tech Mono',monospace;}
+.ph:first-child{text-align:center;}
+
+.pins-scroll{overflow-y:auto;max-height:220px;}
+.pins-list{display:flex;flex-direction:column;}
+.pin-row{display:grid;grid-template-columns:44px 1fr 130px 110px 32px;align-items:start;border-bottom:1px solid var(--border);background:var(--surface2);animation:fi .2s ease;transition:background .12s;}
+.pin-row:hover{background:var(--surface3);}
+.pin-num-cell{display:flex;align-items:center;justify-content:center;padding:10px 0;}
+.pin-badge{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:11px;font-weight:700;color:#000;flex-shrink:0;}
+.pin-desc-cell{padding:8px 8px;}
+.pin-desc-cell textarea{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:10px;padding:7px 8px;outline:none;resize:none;transition:border-color .2s;line-height:1.5;}
+.pin-desc-cell textarea:focus{border-color:var(--purple);}
+.pin-desc-cell textarea::placeholder{color:var(--muted);}
+.pin-sev-cell,.pin-st-cell{padding:8px 6px 8px 0;}
+.pin-sel{width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:9px;padding:7px 6px;outline:none;cursor:pointer;text-transform:uppercase;letter-spacing:.3px;transition:border-color .2s;}
+.pin-sel:focus{border-color:var(--purple);}
+.pin-sel option{background:var(--surface);}
+.pin-del-cell{display:flex;align-items:flex-start;justify-content:center;padding:10px 0 0;}
+.pin-del{background:transparent;border:none;color:var(--muted);cursor:pointer;font-size:13px;padding:2px;transition:color .15s;line-height:1;}
+.pin-del:hover{color:var(--red);}
+
+.no-pins{padding:24px;text-align:center;color:var(--muted);font-size:10px;line-height:1.9;background:var(--surface2);}
+
+.qa-actions{padding:10px 18px;display:flex;gap:8px;align-items:center;}
+.pin-count-lbl{font-size:10px;color:var(--text2);}
+
+/* RIGHT — ISSUE LOG */
+.log-pane{
+  display:flex;flex-direction:column;overflow:hidden;
+  background:var(--surface);
+}
+.log-header{
+  padding:14px 16px 10px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
+.log-header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.log-header h2{font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text2);}
+.filter-row{display:flex;gap:4px;flex-wrap:wrap;}
+.chip{font-family:'Space Mono',monospace;font-size:8px;padding:4px 9px;border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;text-transform:uppercase;letter-spacing:.5px;transition:all .15s;}
+.chip.active,.chip:hover{border-color:var(--purple);color:var(--purple);background:var(--purple-bg);}
+
+.log-body{flex:1;overflow-y:auto;padding:8px;}
+.log-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--muted);text-align:center;gap:10px;padding:40px;}
+.log-empty .emo{font-size:32px;}
+.log-empty h3{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);}
+.log-empty p{font-size:10px;line-height:1.8;}
+
+/* ISSUE CARDS in log */
+.icard{
+  background:var(--surface2);border:1px solid var(--border);
+  margin-bottom:6px;padding:12px 14px;animation:fi .2s ease;
+  transition:background .12s;
+}
+.icard:hover{background:var(--surface3);}
+@keyframes fi{from{opacity:0;transform:translateY(-3px)}to{opacity:1;transform:translateY(0)}}
+
+.icard-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px;}
+.icard-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+.icard-num{font-size:9px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+.icard-flow{font-size:10px;color:var(--purple);}
+.icard-page{font-size:10px;color:var(--text2);}
+.icard-sep{color:var(--border2);font-size:10px;}
+.icard-actions{display:flex;gap:2px;flex-shrink:0;}
+.icon-btn{background:transparent;border:none;color:var(--muted);cursor:pointer;padding:3px;font-size:12px;transition:color .15s;}
+.icon-btn:hover{color:var(--text);}
+.icon-btn.del:hover{color:var(--red);}
+
+.icard-desc{font-size:11px;color:var(--text);line-height:1.6;margin-bottom:10px;}
+.icard-thumb{margin-bottom:10px;}
+.icard-thumb img{max-width:100%;max-height:120px;object-fit:cover;border:1px solid var(--border2);display:block;cursor:pointer;}
+
+.icard-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.icard-badges{display:flex;gap:6px;align-items:center;}
+.badge{display:inline-block;font-size:8px;padding:2px 6px;text-transform:uppercase;letter-spacing:.8px;border:1px solid;font-family:'Share Tech Mono',monospace;}
+.badge.Critical{color:var(--red);border-color:var(--red);background:var(--red-bg);}
+.badge.Minor{color:var(--yellow);border-color:var(--yellow);background:var(--yellow-bg);}
+.badge.Suggestion{color:var(--text2);border-color:var(--border2);background:var(--surface);}
+.ssel{background:transparent;border:1px solid var(--border);color:var(--text);font-family:'Space Mono',monospace;font-size:9px;padding:3px 6px;cursor:pointer;outline:none;text-transform:uppercase;}
+.ssel:focus{border-color:var(--purple);}
+.ssel.Open{color:var(--orange);border-color:rgba(245,166,35,.4);}
+.ssel.Fixed{color:var(--green);border-color:rgba(76,175,125,.4);}
+.ssel.Wontfix{color:var(--muted);border-color:rgba(90,90,90,.3);}
+.icard-date{font-size:9px;color:var(--muted);font-family:'Share Tech Mono',monospace;}
+
+/* MANUAL ADD BUTTON */
+.log-footer{padding:10px 8px;border-top:1px solid var(--border);flex-shrink:0;}
+.log-footer button{width:100%;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:500;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);padding:18px;max-width:92vw;max-height:90vh;overflow:auto;position:relative;}
+.modal img{max-width:100%;display:block;}
+.modal-close{position:absolute;top:8px;right:8px;background:var(--red);border:none;color:#fff;width:24px;height:24px;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+
+/* MANUAL ISSUE MODAL */
+.modal-form{background:var(--surface);border:1px solid var(--border2);border-top:2px solid var(--purple);padding:28px;max-width:520px;width:100%;position:relative;}
+.modal-form h3{font-family:'Share Tech Mono',monospace;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:20px;}
+.mf-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.mf-g label{display:block;font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px;font-family:'Share Tech Mono',monospace;}
+.mf-g input,.mf-g select,.mf-g textarea{width:100%;background:var(--surface2);border:1px solid var(--border2);color:var(--text);font-family:'Space Mono',monospace;font-size:11px;padding:9px 11px;outline:none;transition:border-color .2s;resize:none;}
+.mf-g input:focus,.mf-g select:focus,.mf-g textarea:focus{border-color:var(--purple);}
+.mf-g input::placeholder,.mf-g textarea::placeholder{color:var(--muted);}
+.paste-zone{border:1px dashed var(--border2);background:var(--surface2);padding:16px;text-align:center;cursor:pointer;min-height:72px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;position:relative;transition:border-color .2s;}
+.paste-zone.focused{border-color:var(--purple);background:var(--purple-bg);}
+.paste-zone p{font-size:11px;color:var(--text2);}
+.paste-zone img{max-width:100%;max-height:120px;object-fit:contain;}
+.paste-zone .rm{position:absolute;top:5px;right:5px;background:var(--red);border:none;color:#fff;width:20px;height:20px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.mf-bot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
+
+/* CLOSE PROJECT MODAL */
+.close-modal{background:var(--surface);border:1px solid var(--border2);border-top:2px solid var(--red);padding:32px;max-width:420px;width:100%;position:relative;}
+.close-modal h3{font-family:'Share Tech Mono',monospace;font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--red);margin-bottom:12px;}
+.close-modal p{font-size:11px;color:var(--text2);line-height:1.8;margin-bottom:6px;}
+.close-modal .warning{font-size:11px;color:var(--orange);margin-bottom:24px;line-height:1.8;}
+.close-modal-btns{display:flex;flex-direction:column;gap:8px;}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--purple);color:var(--purple);padding:10px 16px;font-size:10px;z-index:1000;animation:toastIn .2s ease;pointer-events:none;letter-spacing:.8px;text-transform:uppercase;font-family:'Share Tech Mono',monospace;}
+@keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg);}
+::-webkit-scrollbar-thumb{background:var(--border2);}
+::-webkit-scrollbar-thumb:hover{background:var(--purple);}
+*:focus-visible{outline:2px solid var(--purple);outline-offset:2px;}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════
+     START SCREEN
+══════════════════════════════ -->
+<div id="startScreen">
+  <div class="start-inner">
+    <div class="start-logo">
+      <div class="start-mark">QC</div>
+      <div>
+        <div class="start-title">Issue<span>Log</span></div>
+        <span class="start-sub">Quality Control System</span>
+      </div>
+    </div>
+
+    <!-- Resume card (shown only if active project exists) -->
+    <div id="resumeCard" class="resume-card" style="display:none;" onclick="resumeProject()">
+      <div class="resume-info">
+        <div class="resume-name" id="resumeName">—</div>
+        <div class="resume-meta" id="resumeMeta">—</div>
+      </div>
+      <button class="resume-btn">↩ Resume Project</button>
+    </div>
+
+    <div class="start-card" style="margin-top:12px;">
+      <h2>// Start New Project</h2>
+      <p>Each project is a self-contained QC session.<br/>When done, export and close it — then start a new one.</p>
+      <label class="start-label" for="startInput">Project Name</label>
+      <input class="start-input" type="text" id="startInput" placeholder="E.g. NYKAA REDESIGN..." maxlength="60" oninput="checkStartBtn()"/>
+      <button class="start-btn" id="startBtn" onclick="startProject()" disabled>Create Project →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     APP SCREEN
+══════════════════════════════ -->
+<div id="appScreen">
+
+  <header>
+    <div class="h-left">
+      <div class="logo-mark">QC</div>
+      <div class="proj-divider">/</div>
+      <div>
+        <div class="proj-name"><span id="hProjName">—</span></div>
+        <div class="proj-label" id="hProjDate">—</div>
+      </div>
+    </div>
+
+    <div class="h-center">
+      <div class="stat-item"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+      <div class="stat-sep"></div>
+      <div class="stat-item"><div class="stat-num red" id="s-crit">0</div><div class="stat-lbl">Critical</div></div>
+      <div class="stat-sep"></div>
+      <div class="stat-item"><div class="stat-num orange" id="s-open">0</div><div class="stat-lbl">Open</div></div>
+      <div class="stat-sep"></div>
+      <div class="stat-item"><div class="stat-num green" id="s-fixed">0</div><div class="stat-lbl">Fixed</div></div>
+    </div>
+
+    <div class="h-right">
+      <button class="btn btn-outline" onclick="showManual()">＋ Manual Issue</button>
+      <button class="btn btn-outline" onclick="exportAll()">↓ Export</button>
+      <button class="btn btn-danger" onclick="showCloseModal()">✕ Close Project</button>
+    </div>
+  </header>
+
+  <div class="app-body">
+
+    <!-- LEFT: ANNOTATOR -->
+    <div class="ann-pane">
+      <div class="ann-pane-header">
+        <h2>// Screenshot Annotator</h2>
+        <p>Paste a screenshot, drop pins on issues, fill details below</p>
+      </div>
+
+      <!-- Drop hero -->
+      <div class="drop-hero" id="dropHero" tabindex="0">
+        <h3>Drop a <span>Screenshot</span></h3>
+        <p>Click here, then paste your screenshot</p>
+        <p><span class="key">CTRL+V</span><span class="or-sep">//</span><span class="key">⌘+V</span></p>
+        <p><label for="fileIn" style="color:var(--purple);cursor:pointer;font-size:10px;text-decoration:underline;">or browse for a file</label></p>
+        <input type="file" id="fileIn" accept="image/*" style="display:none" onchange="loadFile(this)"/>
+      </div>
+
+      <!-- Canvas area -->
+      <div class="canvas-area" id="canvasArea" style="display:none;">
+        <div id="canvasToolbar">
+          <div class="tb-section">
+            <span class="tb-lbl">Tools</span>
+            <div class="tb-content">
+              <div class="tool-item"><div class="tool-btn active" id="tb-pin" onclick="setTool('pin')">📍</div><span>Pin</span></div>
+              <div class="tool-item"><div class="tool-btn" id="tb-rect" onclick="setTool('rect')">⬜</div><span>Box</span></div>
+              <div class="tool-item"><div class="tool-btn" id="tb-arrow" onclick="setTool('arrow')">↗</div><span>Arrow</span></div>
+              <div class="tool-item"><div class="tool-btn" id="tb-pen" onclick="setTool('pen')">✏️</div><span>Pen</span></div>
+            </div>
+          </div>
+          <div class="tb-section">
+            <span class="tb-lbl">Color</span>
+            <div class="tb-content" style="gap:7px;">
+              <div class="color-item"><div class="cswatch active" style="background:#f45b69" data-c="#f45b69" onclick="setColor(this)"></div><span>Red</span></div>
+              <div class="color-item"><div class="cswatch" style="background:#f5c842" data-c="#f5c842" onclick="setColor(this)"></div><span>Yellow</span></div>
+              <div class="color-item"><div class="cswatch" style="background:#f5a623" data-c="#f5a623" onclick="setColor(this)"></div><span>Orange</span></div>
+              <div class="color-item"><div class="cswatch" style="background:#9b7fff" data-c="#9b7fff" onclick="setColor(this)"></div><span>Purple</span></div>
+              <div class="color-item"><div class="cswatch" style="background:#fff" data-c="#fff" onclick="setColor(this)"></div><span>White</span></div>
+            </div>
+          </div>
+          <div class="tb-section">
+            <span class="tb-lbl">Size</span>
+            <div class="tb-content" style="gap:6px;">
+              <input type="range" id="brushSz" min="1" max="12" value="3" oninput="document.getElementById('szVal').textContent=this.value"/>
+              <span class="size-val" id="szVal">3</span>
+            </div>
+          </div>
+          <div class="tb-section">
+            <span class="tb-lbl">Actions</span>
+            <div class="tb-content" style="gap:5px;">
+              <button class="btn-ghost" onclick="undoLast()">↩ Undo</button>
+              <button class="btn-ghost" onclick="clearAnn()">✕ Clear</button>
+              <button class="btn-ghost" onclick="newShot()">⟳ New</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="canvasWrap"><canvas id="annotCanvas"></canvas></div>
+
+        <!-- Quick add panel -->
+        <div id="quickAdd">
+          <div class="qa-top">
+            <h3>// Log Issues</h3>
+            <p class="qa-hint" id="qaHint">Click 📍 on the screenshot to drop a pin — each pin gets its own row.</p>
+          </div>
+          <div class="qa-shared">
+            <div class="f-group">
+              <label>Flow Name <span style="color:var(--muted);font-size:8px;">// all pins</span></label>
+              <input type="text" id="fp-flow" placeholder="e.g. Default State"/>
+            </div>
+            <div class="f-group">
+              <label>Page Name <span style="color:var(--muted);font-size:8px;">// all pins</span></label>
+              <input type="text" id="fp-page" placeholder="e.g. CLP"/>
+            </div>
+          </div>
+
+          <div class="pins-header" id="pinsHeader" style="display:none;">
+            <div class="ph" style="text-align:center;">PIN</div>
+            <div class="ph">DESCRIPTION</div>
+            <div class="ph">SEVERITY</div>
+            <div class="ph">STATUS</div>
+            <div class="ph"></div>
+          </div>
+          <div class="pins-scroll">
+            <div class="pins-list" id="pinsList">
+              <div class="no-pins" id="noPinsMsg">Click anywhere on the screenshot above to drop pin #1</div>
+            </div>
+          </div>
+
+          <div class="qa-actions">
+            <button class="btn btn-primary" id="logAllBtn" onclick="logAllPins()" style="display:none;">＋ Log All Pins</button>
+            <button class="btn btn-outline" onclick="logSsOnly()" style="font-size:9px;padding:7px 12px;">💾 Screenshot Only</button>
+            <span class="pin-count-lbl" id="pinCountLbl"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: ISSUE LOG -->
+    <div class="log-pane">
+      <div class="log-header">
+        <div class="log-header-top">
+          <h2>// Issue Log</h2>
+        </div>
+        <div class="filter-row">
+          <button class="chip active" onclick="setFilter('all',this)">All</button>
+          <button class="chip" onclick="setFilter('Critical',this)">Critical</button>
+          <button class="chip" onclick="setFilter('Minor',this)">Minor</button>
+          <button class="chip" onclick="setFilter('Suggestion',this)">Suggestion</button>
+          <button class="chip" onclick="setFilter('Open',this)">Open</button>
+          <button class="chip" onclick="setFilter('Fixed',this)">Fixed</button>
+          <button class="chip" onclick="setFilter('Wontfix',this)">Won't Fix</button>
+        </div>
+      </div>
+
+      <div class="log-body" id="logBody">
+        <div class="log-empty" id="logEmpty">
+          <div class="emo">◎</div>
+          <h3>No Issues Yet</h3>
+          <p>Paste a screenshot on the left,<br/>drop pins and log your first issue.</p>
+        </div>
+        <div id="issuesList"></div>
+      </div>
+
+      <div class="log-footer">
+        <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="showManual()">＋ Add Manual Issue</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- IMAGE PREVIEW MODAL -->
+<div class="modal-overlay" id="imgModal" onclick="closeImgModal(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeImgModal()">✕</button>
+    <img id="modalImg" src="" alt="Issue screenshot"/>
+  </div>
+</div>
+
+<!-- MANUAL ISSUE MODAL -->
+<div class="modal-overlay" id="manualModal" onclick="closeManualModal(event)">
+  <div class="modal-form">
+    <button class="modal-close" onclick="closeManualModal()">✕</button>
+    <h3 id="mfTitle">// Add Manual Issue</h3>
+    <div class="mf-row">
+      <div class="mf-g"><label>Flow Name</label><input type="text" id="mf-flow" placeholder="e.g. Default State"/></div>
+      <div class="mf-g"><label>Page Name</label><input type="text" id="mf-page" placeholder="e.g. CLP"/></div>
+    </div>
+    <div class="mf-row">
+      <div class="mf-g"><label>Severity</label><select id="mf-sv"><option>Critical</option><option selected>Minor</option><option>Suggestion</option></select></div>
+      <div class="mf-g"><label>Status</label><select id="mf-st"><option selected>Open</option><option>Fixed</option><option>Wontfix</option></select></div>
+    </div>
+    <div class="mf-g" style="margin-bottom:12px;"><label>Description</label><textarea id="mf-de" rows="3" placeholder="Describe the issue..."></textarea></div>
+    <div class="mf-g">
+      <label>Screenshot (optional) — click then Ctrl+V</label>
+      <div class="paste-zone" id="mfPZ" tabindex="0" onclick="focusMfPaste()">
+        <p>📋 Click here, then <span class="key">Ctrl+V</span></p>
+      </div>
+    </div>
+    <div class="mf-bot">
+      <button class="btn btn-outline" onclick="closeManualModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveManual()">Save Issue</button>
+    </div>
+  </div>
+</div>
+
+<!-- CLOSE PROJECT MODAL -->
+<div class="modal-overlay" id="closeModal" onclick="closeCloseModal(event)">
+  <div class="close-modal">
+    <button class="modal-close" onclick="closeCloseModal()">✕</button>
+    <h3>// Close Project</h3>
+    <p>You're about to close <b id="cmProjName" style="color:var(--text);">—</b>.</p>
+    <p class="warning">⚠ Export your issues first — closing will permanently wipe this project so you can start a new one. This cannot be undone.</p>
+    <div class="close-modal-btns">
+      <button class="btn btn-primary" style="width:100%;justify-content:center;" onclick="exportThenClose()">↓ Export & Close Project</button>
+      <button class="btn btn-danger" style="width:100%;justify-content:center;" onclick="forceClose()">Close Without Exporting</button>
+      <button class="btn btn-outline" style="width:100%;justify-content:center;" onclick="closeCloseModal()">Cancel — Keep Working</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══ STATE ═══ */
+let project = null; // { name, createdAt, issues[] }
+let activeFilter = 'all';
+let mfImg = null, mfFocused = false, editingId = null;
+let pendingPins = [];
+
+/* ═══ CANVAS ═══ */
+const canvas = document.getElementById('annotCanvas');
+const ctx = canvas.getContext('2d');
+let bgImage = null, currentTool = 'pin', currentColor = '#f45b69';
+let annotations = [], pinCount = 0, drawing = false, sx, sy;
+const PIN_COLORS = ['#f45b69','#f5c842','#f5a623','#9b7fff','#fff','#4caf7d','#f5a623','#e879f9'];
+
+/* ═══ PERSIST ═══ */
+function persist() {
+  if (!project) return;
+  try { localStorage.setItem('qc_project', JSON.stringify(project)); } catch(e) {}
+}
+
+function loadPersisted() {
+  try {
+    const raw = localStorage.getItem('qc_project');
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch(e) { return null; }
+}
+
+function clearPersisted() {
+  localStorage.removeItem('qc_project');
+}
+
+/* ═══ START SCREEN ═══ */
+function checkStartBtn() {
+  const val = document.getElementById('startInput').value.trim();
+  document.getElementById('startBtn').disabled = val.length === 0;
+}
+
+function startProject() {
+  const name = document.getElementById('startInput').value.trim();
+  if (!name) return;
+  project = { name, createdAt: new Date().toLocaleDateString('en-GB'), issues: [] };
+  persist();
+  launchApp();
+}
+
+function resumeProject() {
+  const saved = loadPersisted();
+  if (!saved) return;
+  project = saved;
+  launchApp();
+}
+
+function launchApp() {
+  document.getElementById('startScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'flex';
+  document.getElementById('hProjName').textContent = project.name;
+  document.getElementById('hProjDate').textContent = `Started ${project.createdAt}`;
+  updateStats();
+  renderIssues();
+}
+
+/* Check on load */
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = loadPersisted();
+  if (saved && saved.issues) {
+    const rc = document.getElementById('resumeCard');
+    rc.style.display = 'flex';
+    document.getElementById('resumeName').textContent = saved.name;
+    document.getElementById('resumeMeta').textContent =
+      `Started ${saved.createdAt} · ${saved.issues.length} issue${saved.issues.length !== 1 ? 's' : ''}`;
+  }
+});
+
+/* ═══ SCREENSHOT ═══ */
+const hero = document.getElementById('dropHero');
+hero.addEventListener('dragover', e=>{e.preventDefault();hero.classList.add('drag-over');});
+hero.addEventListener('dragleave', ()=>hero.classList.remove('drag-over'));
+hero.addEventListener('drop', e=>{e.preventDefault();hero.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f&&f.type.startsWith('image'))readImg(f);});
+
+document.addEventListener('paste', e => {
+  if (mfFocused) {
+    for (let it of e.clipboardData.items) {
+      if (it.type.startsWith('image')) {
+        const r=new FileReader(); r.onload=ev=>{mfImg=ev.target.result;renderMfPaste();};
+        r.readAsDataURL(it.getAsFile()); e.preventDefault(); break;
+      }
+    }
+    return;
+  }
+  if (document.getElementById('appScreen').style.display === 'none') return;
+  for (let it of e.clipboardData.items) {
+    if (it.type.startsWith('image')) { readImg(it.getAsFile()); e.preventDefault(); break; }
+  }
+});
+
+function loadFile(inp){if(inp.files[0])readImg(inp.files[0]);}
+function readImg(file){const r=new FileReader();r.onload=ev=>loadToCanvas(ev.target.result);r.readAsDataURL(file);}
+
+function loadToCanvas(src) {
+  const img = new Image();
+  img.onload = function() {
+    bgImage=img; annotations=[]; pinCount=0; pendingPins=[];
+    const wrap = document.getElementById('canvasWrap');
+    const maxW = Math.min(wrap.clientWidth || 900, 1200);
+    const sc = Math.min(1, maxW / img.width);
+    canvas.width = img.width * sc;
+    canvas.height = img.height * sc;
+    redraw();
+    hero.style.display = 'none';
+    document.getElementById('canvasArea').style.display = 'flex';
+    document.getElementById('canvasToolbar').style.display = 'flex';
+    document.getElementById('canvasWrap').style.display = 'block';
+    document.getElementById('quickAdd').style.display = 'flex';
+    renderPinRows();
+  };
+  img.src = src;
+}
+
+/* ═══ DRAWING ═══ */
+function redraw() {
+  if (!bgImage) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(bgImage,0,0,canvas.width,canvas.height);
+  annotations.forEach(a=>drawAnn(ctx,a));
+}
+function drawAnn(c,a) {
+  c.save(); c.strokeStyle=a.color; c.fillStyle=a.color; c.lineWidth=a.sz||2; c.lineCap='round'; c.lineJoin='round';
+  if (a.type==='pin') {
+    const r=14; c.beginPath(); c.arc(a.x,a.y,r,0,Math.PI*2); c.fillStyle=a.color; c.fill();
+    c.strokeStyle='rgba(0,0,0,.35)'; c.lineWidth=1.5; c.stroke();
+    c.fillStyle='#000'; c.font='bold 11px "Space Mono",monospace'; c.textAlign='center'; c.textBaseline='middle'; c.fillText(a.num,a.x,a.y+1);
+  } else if(a.type==='rect'){c.strokeRect(a.x,a.y,a.w,a.h);}
+  else if(a.type==='arrow'){drawArrow(c,a.x1,a.y1,a.x2,a.y2,a.sz);}
+  else if(a.type==='pen'){if(a.pts.length<2)return;c.beginPath();c.moveTo(a.pts[0].x,a.pts[0].y);a.pts.forEach(p=>c.lineTo(p.x,p.y));c.stroke();}
+  c.restore();
+}
+function drawArrow(c,x1,y1,x2,y2,sz=2){
+  const hl=sz*7,ang=Math.atan2(y2-y1,x2-x1);
+  c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.stroke();
+  c.beginPath();c.moveTo(x2,y2);c.lineTo(x2-hl*Math.cos(ang-Math.PI/6),y2-hl*Math.sin(ang-Math.PI/6));c.lineTo(x2-hl*Math.cos(ang+Math.PI/6),y2-hl*Math.sin(ang+Math.PI/6));c.closePath();c.fill();
+}
+function getXY(e){const r=canvas.getBoundingClientRect(),src=e.touches?e.touches[0]:e;return{x:src.clientX-r.left,y:src.clientY-r.top};}
+
+canvas.addEventListener('mousedown',e=>{
+  const{x,y}=getXY(e);
+  if(currentTool==='pin'){
+    pinCount++; const col=PIN_COLORS[(pinCount-1)%PIN_COLORS.length];
+    annotations.push({type:'pin',x,y,num:pinCount,color:col,sz:3});
+    pendingPins.push({num:pinCount,color:col,desc:'',severity:'Minor',status:'Open'});
+    redraw(); renderPinRows(); return;
+  }
+  drawing=true; sx=x; sy=y;
+  if(currentTool==='pen')annotations.push({type:'pen',pts:[{x,y}],color:currentColor,sz:parseInt(document.getElementById('brushSz').value)});
+});
+canvas.addEventListener('mousemove',e=>{
+  if(!drawing)return; const{x,y}=getXY(e); const sz=parseInt(document.getElementById('brushSz').value);
+  if(currentTool==='pen'){annotations[annotations.length-1].pts.push({x,y});redraw();}
+  else{redraw();ctx.save();ctx.strokeStyle=currentColor;ctx.fillStyle=currentColor;ctx.lineWidth=sz;ctx.lineCap='round';if(currentTool==='rect')ctx.strokeRect(sx,sy,x-sx,y-sy);else if(currentTool==='arrow')drawArrow(ctx,sx,sy,x,y,sz);ctx.restore();}
+});
+canvas.addEventListener('mouseup',e=>{
+  if(!drawing)return;drawing=false;const{x,y}=getXY(e);const sz=parseInt(document.getElementById('brushSz').value);
+  if(currentTool==='rect')annotations.push({type:'rect',x:sx,y:sy,w:x-sx,h:y-sy,color:currentColor,sz});
+  else if(currentTool==='arrow')annotations.push({type:'arrow',x1:sx,y1:sy,x2:x,y2:y,color:currentColor,sz});
+  redraw();
+});
+canvas.addEventListener('mouseleave',()=>{if(drawing&&currentTool!=='pen'){drawing=false;redraw();}});
+function setTool(t){currentTool=t;['pin','rect','arrow','pen'].forEach(id=>document.getElementById('tb-'+id).classList.toggle('active',id===t));canvas.style.cursor=t==='pin'?'cell':'crosshair';}
+function setColor(el){currentColor=el.dataset.c;document.querySelectorAll('.cswatch').forEach(s=>s.classList.remove('active'));el.classList.add('active');}
+function undoLast(){
+  if(!annotations.length)return;
+  const last=annotations[annotations.length-1];
+  if(last.type==='pin'){pinCount=Math.max(0,pinCount-1);pendingPins=pendingPins.filter(p=>p.num!==last.num);renderPinRows();}
+  annotations.pop();redraw();
+}
+function clearAnn(){annotations=[];pinCount=0;pendingPins=[];redraw();renderPinRows();}
+function newShot(){
+  bgImage=null;annotations=[];pinCount=0;pendingPins=[];
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  document.getElementById('canvasArea').style.display='none';
+  document.getElementById('canvasToolbar').style.display='none';
+  document.getElementById('canvasWrap').style.display='none';
+  document.getElementById('quickAdd').style.display='none';
+  hero.style.display='flex';
+}
+
+/* ═══ PIN ROWS ═══ */
+function renderPinRows(){
+  const list=document.getElementById('pinsList');
+  const hdr=document.getElementById('pinsHeader');
+  const logBtn=document.getElementById('logAllBtn');
+  const lbl=document.getElementById('pinCountLbl');
+  const hint=document.getElementById('qaHint');
+  if(!pendingPins.length){
+    hdr.style.display='none';logBtn.style.display='none';lbl.textContent='';
+    hint.innerHTML='Click 📍 on the screenshot to drop a pin — each pin gets its own row.';
+    list.innerHTML='<div class="no-pins" id="noPinsMsg">Click anywhere on the screenshot above to drop pin #1</div>';
+    return;
+  }
+  hdr.style.display='grid';logBtn.style.display='inline-flex';
+  lbl.textContent=`${pendingPins.length} pin${pendingPins.length>1?'s':''} ready`;
+  hint.innerHTML=`<span>${pendingPins.length} pin${pendingPins.length>1?'s':''} placed.</span> Fill in each issue, then click Log All Pins.`;
+  list.innerHTML=pendingPins.map(p=>`
+    <div class="pin-row" id="pr-${p.num}">
+      <div class="pin-num-cell"><div class="pin-badge" style="background:${p.color};">${p.num}</div></div>
+      <div class="pin-desc-cell">
+        <textarea rows="2" placeholder="Describe issue #${p.num}..."
+          oninput="pendingPins.find(x=>x.num===${p.num}).desc=this.value">${esc(p.desc)}</textarea>
+      </div>
+      <div class="pin-sev-cell">
+        <select class="pin-sel" onchange="pendingPins.find(x=>x.num===${p.num}).severity=this.value">
+          <option ${p.severity==='Critical'?'selected':''}>Critical</option>
+          <option ${p.severity==='Minor'?'selected':''}>Minor</option>
+          <option ${p.severity==='Suggestion'?'selected':''}>Suggestion</option>
+        </select>
+      </div>
+      <div class="pin-st-cell">
+        <select class="pin-sel" onchange="pendingPins.find(x=>x.num===${p.num}).status=this.value">
+          <option ${p.status==='Open'?'selected':''}>Open</option>
+          <option ${p.status==='Fixed'?'selected':''}>Fixed</option>
+          <option ${p.status==='Wontfix'?'selected':''}>Wontfix</option>
+        </select>
+      </div>
+      <div class="pin-del-cell"><button class="pin-del" onclick="removePin(${p.num})">✕</button></div>
+    </div>
+  `).join('');
+}
+
+function removePin(num){
+  pendingPins=pendingPins.filter(p=>p.num!==num);
+  annotations=annotations.filter(a=>!(a.type==='pin'&&a.num===num));
+  let c=0;annotations.forEach(a=>{if(a.type==='pin'){c++;a.num=c;}});
+  pendingPins.forEach((p,i)=>p.num=i+1);pinCount=pendingPins.length;
+  redraw();renderPinRows();
+}
+
+function logAllPins(){
+  const flow=document.getElementById('fp-flow').value.trim()||'—';
+  const page=document.getElementById('fp-page').value.trim()||'—';
+  const snap=bgImage?getSnapshot():null;
+  const ts=new Date().toLocaleDateString('en-GB');
+  if(!pendingPins.length){toast('No pins to log');return;}
+  if(pendingPins.every(p=>!p.desc.trim())){toast('Describe at least one issue');return;}
+  let logged=0;
+  pendingPins.forEach(p=>{
+    if(!p.desc.trim())return;
+    project.issues.push({id:Date.now()+Math.random(),flow,page,desc:`[Pin ${p.num}] ${p.desc.trim()}`,severity:p.severity,status:p.status,img:snap,pinNum:p.num,ts,source:'annotator'});
+    logged++;
+  });
+  persist();updateStats();renderIssues();
+  toast(`✓ ${logged} issue${logged>1?'s':''} logged`);
+  document.getElementById('fp-flow').value='';
+  document.getElementById('fp-page').value='';
+  clearAnn();newShot();
+}
+
+function logSsOnly(){
+  if(!bgImage){toast('No screenshot loaded');return;}
+  project.issues.push({id:Date.now(),flow:document.getElementById('fp-flow').value.trim()||'—',page:document.getElementById('fp-page').value.trim()||'—',desc:'(screenshot only)',severity:'Minor',status:'Open',img:getSnapshot(),ts:new Date().toLocaleDateString('en-GB'),source:'annotator'});
+  persist();updateStats();renderIssues();toast('Screenshot saved');
+  document.getElementById('fp-flow').value='';document.getElementById('fp-page').value='';
+  clearAnn();newShot();
+}
+function getSnapshot(){return canvas.toDataURL('image/png');}
+
+/* ═══ MANUAL FORM ═══ */
+function showManual(){editingId=null;document.getElementById('mfTitle').textContent='// Add Manual Issue';resetManualFields();document.getElementById('manualModal').classList.add('open');setTimeout(()=>document.getElementById('mf-de').focus(),50);}
+function closeManualModal(e){if(!e||e.target===document.getElementById('manualModal'))document.getElementById('manualModal').classList.remove('open');}
+function resetManualFields(){['mf-flow','mf-page','mf-de'].forEach(id=>document.getElementById(id).value='');document.getElementById('mf-sv').value='Minor';document.getElementById('mf-st').value='Open';mfImg=null;renderMfPaste();}
+function focusMfPaste(){mfFocused=true;document.getElementById('mfPZ').classList.add('focused');}
+document.addEventListener('click',e=>{if(!document.getElementById('mfPZ').contains(e.target)){mfFocused=false;document.getElementById('mfPZ').classList.remove('focused');}});
+function renderMfPaste(){const pz=document.getElementById('mfPZ');pz.innerHTML=mfImg?`<img src="${mfImg}" alt=""/><button class="rm" onclick="rmMfImg(event)">✕</button>`:`<p>📋 Click here, then <span class="key">Ctrl+V</span></p>`;}
+function rmMfImg(e){e.stopPropagation();mfImg=null;renderMfPaste();}
+function saveManual(){
+  const desc=document.getElementById('mf-de').value.trim();
+  if(!desc){flashEl('mf-de');return;}
+  const issue={id:editingId||Date.now(),flow:document.getElementById('mf-flow').value.trim()||'—',page:document.getElementById('mf-page').value.trim()||'—',desc,severity:document.getElementById('mf-sv').value,status:document.getElementById('mf-st').value,img:mfImg,ts:new Date().toLocaleDateString('en-GB'),source:'manual'};
+  if(editingId){const i=project.issues.findIndex(x=>x.id===editingId);if(i!==-1)project.issues[i]=issue;}
+  else project.issues.push(issue);
+  persist();closeManualModal();renderIssues();updateStats();
+  toast(editingId?'Issue updated':`Issue #${project.issues.length} saved`);
+}
+
+/* ═══ RENDER ISSUES ═══ */
+function setFilter(v,btn){activeFilter=v;document.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));btn.classList.add('active');renderIssues();}
+
+function renderIssues(){
+  if(!project)return;
+  const list=document.getElementById('issuesList');
+  const empty=document.getElementById('logEmpty');
+  const filtered=project.issues.filter(i=>activeFilter==='all'||i.severity===activeFilter||i.status===activeFilter);
+  if(!project.issues.length){empty.style.display='flex';list.innerHTML='';return;}
+  empty.style.display='none';
+  list.innerHTML=filtered.map((iss,idx)=>`
+    <div class="icard" id="ic-${iss.id}">
+      <div class="icard-top">
+        <div class="icard-meta">
+          <span class="icard-num">#${idx+1}</span>
+          <span class="icard-sep">·</span>
+          <span class="icard-flow">${esc(iss.flow)}</span>
+          <span class="icard-sep">/</span>
+          <span class="icard-page">${esc(iss.page)}</span>
+        </div>
+        <div class="icard-actions">
+          <button class="icon-btn" onclick="editIssue(${iss.id})" title="Edit">✏️</button>
+          <button class="icon-btn del" onclick="delIssue(${iss.id})" title="Delete">🗑</button>
+        </div>
+      </div>
+      ${iss.img?`<div class="icard-thumb"><img src="${iss.img}" onclick="previewImg('${iss.id}')" title="Click to enlarge" alt="Screenshot"/></div>`:''}
+      <div class="icard-desc">${esc(iss.desc)}</div>
+      <div class="icard-bottom">
+        <div class="icard-badges">
+          <span class="badge ${iss.severity}">${iss.severity}</span>
+          <select class="ssel ${iss.status.replace("'","")}" onchange="updStatus(${iss.id},this.value)">
+            <option ${iss.status==='Open'?'selected':''}>Open</option>
+            <option ${iss.status==='Fixed'?'selected':''}>Fixed</option>
+            <option ${iss.status==='Wontfix'?'selected':''}>Wontfix</option>
+          </select>
+        </div>
+        <span class="icard-date">${iss.ts}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function updStatus(id,val){const i=project.issues.find(x=>x.id===id);if(i){i.status=val;renderIssues();updateStats();persist();}}
+function delIssue(id){if(!confirm('Remove this issue?'))return;project.issues=project.issues.filter(i=>i.id!==id);renderIssues();updateStats();persist();}
+function editIssue(id){
+  const iss=project.issues.find(i=>i.id===id);if(!iss)return;
+  document.getElementById('mfTitle').textContent='// Edit Issue';
+  document.getElementById('mf-flow').value=iss.flow==='—'?'':iss.flow;
+  document.getElementById('mf-page').value=iss.page==='—'?'':iss.page;
+  document.getElementById('mf-de').value=iss.desc;
+  document.getElementById('mf-sv').value=iss.severity;
+  document.getElementById('mf-st').value=iss.status;
+  mfImg=iss.img;editingId=iss.id;renderMfPaste();
+  document.getElementById('manualModal').classList.add('open');
+}
+function previewImg(id){const iss=project.issues.find(i=>i.id==id);if(!iss||!iss.img)return;document.getElementById('modalImg').src=iss.img;document.getElementById('imgModal').classList.add('open');}
+function closeImgModal(e){if(!e||e.target===document.getElementById('imgModal'))document.getElementById('imgModal').classList.remove('open');}
+
+/* ═══ STATS ═══ */
+function updateStats(){
+  if(!project)return;
+  document.getElementById('s-total').textContent=project.issues.length;
+  document.getElementById('s-crit').textContent=project.issues.filter(i=>i.severity==='Critical').length;
+  document.getElementById('s-open').textContent=project.issues.filter(i=>i.status==='Open').length;
+  document.getElementById('s-fixed').textContent=project.issues.filter(i=>i.status==='Fixed').length;
+}
+
+/* ═══ CLOSE PROJECT ═══ */
+function showCloseModal(){
+  document.getElementById('cmProjName').textContent=project.name;
+  document.getElementById('closeModal').classList.add('open');
+}
+function closeCloseModal(e){if(!e||e.target===document.getElementById('closeModal'))document.getElementById('closeModal').classList.remove('open');}
+
+async function exportThenClose(){
+  await exportAll();
+  setTimeout(()=>wipeProject(),600);
+}
+
+function forceClose(){
+  if(!confirm('Are you sure? All issues will be permanently deleted.'))return;
+  wipeProject();
+}
+
+function wipeProject(){
+  project=null;
+  clearPersisted();
+  document.getElementById('closeModal').classList.remove('open');
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('startScreen').style.display='flex';
+  // Reset start screen
+  document.getElementById('startInput').value='';
+  document.getElementById('startBtn').disabled=true;
+  document.getElementById('resumeCard').style.display='none';
+  // Reset annotator
+  newShot();
+  toast('Project closed');
+}
+
+/* ═══ EXPORT ═══ */
+async function exportAll(){
+  if(!project||!project.issues.length){toast('No issues to export');return;}
+  toast('Building export...');
+  const proj=project.name;
+  const fname=`${proj.replace(/\s+/g,'_')}_QC_${new Date().toLocaleDateString('en-GB').replace(/\//g,'-')}`;
+
+  // Excel
+  const wb=XLSX.utils.book_new();
+  const rows=[['#','Flow Name','Page Name','Description','Severity','Status','Date','Source']];
+  project.issues.forEach((iss,i)=>rows.push([i+1,iss.flow,iss.page,iss.desc,iss.severity,iss.status,iss.ts,iss.source||'manual']));
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:4},{wch:22},{wch:16},{wch:60},{wch:14},{wch:12},{wch:12},{wch:10}];
+  XLSX.utils.book_append_sheet(wb,ws,'Issues');
+
+  const ws2=XLSX.utils.aoa_to_sheet([
+    ['QC Report',proj],['Exported',new Date().toLocaleDateString('en-GB')],[''],
+    ['Severity','Count'],
+    ['Critical',project.issues.filter(i=>i.severity==='Critical').length],
+    ['Minor',project.issues.filter(i=>i.severity==='Minor').length],
+    ['Suggestion',project.issues.filter(i=>i.severity==='Suggestion').length],
+    ['Total',project.issues.length],[''],
+    ['Status','Count'],
+    ['Open',project.issues.filter(i=>i.status==='Open').length],
+    ['Fixed',project.issues.filter(i=>i.status==='Fixed').length],
+    ["Won't Fix",project.issues.filter(i=>i.status==='Wontfix').length],[''],
+    ['Flows','Count'],...[...new Set(project.issues.map(i=>i.flow))].map(f=>[f,project.issues.filter(i=>i.flow===f).length]),[''],
+    ['Pages','Count'],...[...new Set(project.issues.map(i=>i.page))].map(p=>[p,project.issues.filter(i=>i.page===p).length]),
+  ]);
+  ws2['!cols']=[{wch:22},{wch:18}];
+  XLSX.utils.book_append_sheet(wb,ws2,'Summary');
+  XLSX.writeFile(wb,fname+'.xlsx');
+
+  // HTML Report
+  await buildHTMLReport(proj,fname);
+}
+
+async function buildHTMLReport(proj,fname){
+  const sc={Critical:'#f45b69',Minor:'#f5c842',Suggestion:'#a0a0a0'};
+  const st={Open:'#f5a623',Fixed:'#4caf7d',Wontfix:'#5a5a5a'};
+  const rows=project.issues.map((iss,i)=>`<tr>
+    <td style="padding:12px 10px;font-size:11px;color:#5a5a5a;border-bottom:1px solid #2a2a2a;vertical-align:top;text-align:center;">${i+1}</td>
+    <td style="padding:8px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top;">${iss.img?`<img src="${iss.img}" style="max-width:180px;max-height:120px;object-fit:cover;border:1px solid #333;display:block;" alt="Screenshot"/>`:`<div style="width:80px;height:52px;background:#1e1e1e;border:1px solid #2a2a2a;display:flex;align-items:center;justify-content:center;font-size:9px;color:#5a5a5a;">No image</div>`}</td>
+    <td style="padding:12px 10px;font-size:11px;color:#9b7fff;border-bottom:1px solid #2a2a2a;vertical-align:top;">${escH(iss.flow)}</td>
+    <td style="padding:12px 10px;font-size:11px;color:#a0a0a0;border-bottom:1px solid #2a2a2a;vertical-align:top;">${escH(iss.page)}</td>
+    <td style="padding:12px 10px;font-size:11px;color:#f0f0f0;border-bottom:1px solid #2a2a2a;vertical-align:top;max-width:340px;line-height:1.6;">${escH(iss.desc)}</td>
+    <td style="padding:12px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top;"><span style="border:1px solid ${sc[iss.severity]};color:${sc[iss.severity]};font-size:9px;padding:2px 6px;text-transform:uppercase;letter-spacing:.8px;">${iss.severity}</span></td>
+    <td style="padding:12px 10px;border-bottom:1px solid #2a2a2a;vertical-align:top;font-size:10px;color:${st[iss.status]||'#f0f0f0'};text-transform:uppercase;">${iss.status}</td>
+    <td style="padding:12px 10px;font-size:10px;color:#5a5a5a;border-bottom:1px solid #2a2a2a;vertical-align:top;">${escH(iss.ts)}</td>
+  </tr>`).join('');
+
+  const html=`<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"/>
+<title>${escH(proj)} — QC Report</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet"/>
+<style>*{box-sizing:border-box;margin:0;padding:0;}body{background:#0e0e0e;color:#f0f0f0;font-family:'Space Mono',monospace;padding:48px;font-size:12px;}h1{font-family:'Share Tech Mono',monospace;font-size:20px;letter-spacing:3px;text-transform:uppercase;margin-bottom:4px;}.sub{font-size:10px;color:#5a5a5a;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:28px;}.stats{display:flex;gap:2px;margin-bottom:32px;}.stat{background:#161616;border:1px solid #2a2a2a;padding:14px 20px;}.stat b{display:block;font-size:20px;font-family:'Share Tech Mono',monospace;}.stat span{font-size:9px;color:#5a5a5a;text-transform:uppercase;letter-spacing:1px;}table{width:100%;border-collapse:collapse;}th{font-size:9px;color:#5a5a5a;text-transform:uppercase;letter-spacing:1.2px;padding:10px 10px 8px;text-align:left;border-bottom:2px solid #9b7fff;font-family:'Share Tech Mono',monospace;}</style>
+</head><body>
+<h1>${escH(proj)}</h1>
+<span class="sub">QC Report · ${new Date().toLocaleDateString('en-GB')} · ${project.issues.length} issues</span>
+<div class="stats">
+  <div class="stat"><b>${project.issues.length}</b><span>Total</span></div>
+  <div class="stat"><b style="color:#f45b69">${project.issues.filter(i=>i.severity==='Critical').length}</b><span>Critical</span></div>
+  <div class="stat"><b style="color:#f5c842">${project.issues.filter(i=>i.severity==='Minor').length}</b><span>Minor</span></div>
+  <div class="stat"><b style="color:#f5a623">${project.issues.filter(i=>i.status==='Open').length}</b><span>Open</span></div>
+  <div class="stat"><b style="color:#4caf7d">${project.issues.filter(i=>i.status==='Fixed').length}</b><span>Fixed</span></div>
+</div>
+<table><thead><tr><th>#</th><th>Screenshot</th><th>Flow</th><th>Page</th><th>Description</th><th>Severity</th><th>Status</th><th>Date</th></tr></thead>
+<tbody>${rows}</tbody></table>
+</body></html>`;
+
+  const blob=new Blob([html],{type:'text/html'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=fname+'_report.html';a.click();URL.revokeObjectURL(a.href);
+  setTimeout(()=>toast('✓ Excel + HTML report downloaded'),500);
+}
+
+function escH(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+function flashEl(id){const el=document.getElementById(id);el.style.borderColor='var(--red)';el.focus();setTimeout(()=>el.style.borderColor='',1200);}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),3000);}
+</script>
+</body>
+</html>
