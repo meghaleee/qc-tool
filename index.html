@@ -288,7 +288,10 @@ input[type=range]{accent-color:var(--purple);width:58px;cursor:pointer;}
       <div class="mob-mark">QC</div>
       <div class="mob-title">Issue<span>Log</span></div>
     </div>
-    <div class="mob-count" id="mobCount">0 issues</div>
+    <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
+      <div class="mob-count" id="mobCount">0 issues</div>
+      <div style="font-size:8px;color:var(--muted);font-family:'Share Tech Mono',monospace;letter-spacing:.5px;">auto-saved locally</div>
+    </div>
   </div>
   <div class="mob-body">
     <div class="capture-card">
@@ -542,11 +545,29 @@ let mobPhoto = null;
 function loadMobSession() {
   try { const s=localStorage.getItem('qc_mob'); if(s) mobIssues=JSON.parse(s); } catch(e){}
   renderMobIssues();
+  if(mobIssues.length) setTimeout(()=>toast(`↩ ${mobIssues.length} issue${mobIssues.length!==1?'s':''} restored from last session`), 400);
 }
 function saveMobSession() {
   try { localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); } catch(e){}
   renderMobIssues();
+  // Flash the count green briefly to confirm save
+  const el=document.getElementById('mobCount');
+  if(el){ el.style.color='var(--green)'; setTimeout(()=>el.style.color='',1200); }
 }
+
+// Save to localStorage whenever page is hidden (tab switch, phone lock, close)
+window.addEventListener('pagehide', ()=>{
+  if(isMobile && mobIssues.length){
+    try{ localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); }catch(e){}
+  }
+});
+// Warn before leaving if there are unsaved issues not yet bundled
+window.addEventListener('beforeunload', e=>{
+  if(isMobile && mobIssues.length){
+    e.preventDefault();
+    e.returnValue=`You have ${mobIssues.length} issue${mobIssues.length!==1?'s':''} — export your bundle before leaving.`;
+  }
+});
 
 function triggerPhoto() { document.getElementById('photoIn').click(); }
 function onPhotoSelected(inp) {
