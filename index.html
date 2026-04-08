@@ -517,14 +517,37 @@ input[type=range]{accent-color:var(--purple);width:58px;cursor:pointer;}
 
 <script>
 /* ══════════════════════════════════
-   DEVICE DETECTION
+   DEVICE DETECTION — reliable mobile check
 ══════════════════════════════════ */
-const isMobile = window.innerWidth < 700 || ('ontouchstart' in window && window.innerWidth < 900);
+const isMobile = (function(){
+  const touch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const ua = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent);
+  const narrow = screen.width < 768; // use screen.width, not innerWidth (more reliable before layout)
+  return touch && (ua || narrow);
+})();
+
+/* ══════════════════════════════════
+   MOBILE SESSION — load immediately
+   (before DOMContentLoaded so data
+   is ready when renderMobIssues runs)
+══════════════════════════════════ */
+let mobIssues = [];
+let mobPhoto = null;
+
+// Restore immediately at script parse time — no waiting
+try {
+  const _s = localStorage.getItem('qc_mob');
+  if (_s) {
+    const _p = JSON.parse(_s);
+    if (Array.isArray(_p)) mobIssues = _p;
+  }
+} catch(e) {}
 
 window.addEventListener('DOMContentLoaded', () => {
   if (isMobile) {
     document.getElementById('mobileScreen').style.display = 'flex';
-    loadMobSession();
+    renderMobIssues(); // render with already-restored data
+    if (mobIssues.length) setTimeout(()=>toast(`↩ ${mobIssues.length} issue${mobIssues.length!==1?'s':''} restored`), 500);
   } else {
     const saved = loadPersisted();
     document.getElementById('startScreen').style.display = 'flex';
@@ -536,36 +559,31 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 });
 
-/* ══════════════════════════════════
-   MOBILE SESSION
-══════════════════════════════════ */
-let mobIssues = [];
-let mobPhoto = null;
-
 function loadMobSession() {
-  try { const s=localStorage.getItem('qc_mob'); if(s) mobIssues=JSON.parse(s); } catch(e){}
+  try { const s=localStorage.getItem('qc_mob'); if(s){ const p=JSON.parse(s); if(Array.isArray(p)) mobIssues=p; } } catch(e){}
   renderMobIssues();
-  if(mobIssues.length) setTimeout(()=>toast(`↩ ${mobIssues.length} issue${mobIssues.length!==1?'s':''} restored from last session`), 400);
 }
 function saveMobSession() {
   try { localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); } catch(e){}
   renderMobIssues();
-  // Flash the count green briefly to confirm save
   const el=document.getElementById('mobCount');
-  if(el){ el.style.color='var(--green)'; setTimeout(()=>el.style.color='',1200); }
+  if(el){ el.style.color='var(--green)'; setTimeout(()=>el.style.color='',1400); }
 }
 
-// Save to localStorage whenever page is hidden (tab switch, phone lock, close)
+// Save on every possible exit event
 window.addEventListener('pagehide', ()=>{
-  if(isMobile && mobIssues.length){
-    try{ localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); }catch(e){}
+  try{ if(mobIssues.length) localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); }catch(e){}
+});
+window.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState==='hidden'){
+    try{ if(mobIssues.length) localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); }catch(e){}
   }
 });
-// Warn before leaving if there are unsaved issues not yet bundled
 window.addEventListener('beforeunload', e=>{
+  try{ if(mobIssues.length) localStorage.setItem('qc_mob', JSON.stringify(mobIssues)); }catch(e){}
   if(isMobile && mobIssues.length){
     e.preventDefault();
-    e.returnValue=`You have ${mobIssues.length} issue${mobIssues.length!==1?'s':''} — export your bundle before leaving.`;
+    e.returnValue=`You have ${mobIssues.length} issue${mobIssues.length!==1?'s':''} not yet exported as a bundle.`;
   }
 });
 
