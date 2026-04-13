@@ -641,14 +641,14 @@ function logAllPins(){
   let logged=0;
   pendingPins.forEach(p=>{
     if(!p.desc.trim())return;
-    project.issues.push({id:Date.now()+Math.random(),flow,page,desc:`[Pin ${p.num}] ${p.desc.trim()}`,severity:'Minor',status:'Open',img:snap,ts,source:'annotator'});
+    project.issues.push({id:String(Date.now())+"_"+Math.random().toString(36).slice(2,7),flow,page,desc:`[Pin ${p.num}] ${p.desc.trim()}`,severity:'Minor',status:'Open',img:snap,ts,source:'annotator'});
     logged++;
   });
   persist();updateStats();toast(`✓ ${logged} issue${logged>1?'s':''} logged`);newShot();
 }
 function logSsOnly(){
   if(!bgImage){toast('No screenshot loaded');return;}
-  project.issues.push({id:Date.now(),flow:document.getElementById('fp-flow').value.trim()||'—',page:document.getElementById('fp-page').value.trim()||'—',desc:'(screenshot only)',severity:'Minor',status:'Open',img:getSnapshot(),ts:new Date().toLocaleDateString('en-GB'),source:'annotator'});
+  project.issues.push({id:String(Date.now()),flow:document.getElementById('fp-flow').value.trim()||'—',page:document.getElementById('fp-page').value.trim()||'—',desc:'(screenshot only)',severity:'Minor',status:'Open',img:getSnapshot(),ts:new Date().toLocaleDateString('en-GB'),source:'annotator'});
   persist();updateStats();toast('Screenshot saved');newShot();
 }
 function getSnapshot(){return canvas.toDataURL('image/png');}
@@ -664,7 +664,7 @@ function rmMfImg(e){e.stopPropagation();mfImg=null;renderMfPaste();}
 function saveManual(){
   const desc=document.getElementById('mf-de').value.trim();
   if(!desc){flashEl('mf-de');return;}
-  const iss={id:editingId||Date.now(),flow:document.getElementById('mf-flow').value.trim()||'—',page:document.getElementById('mf-page').value.trim()||'—',desc,severity:document.getElementById('mf-sv').value,status:document.getElementById('mf-st').value,img:mfImg,ts:new Date().toLocaleDateString('en-GB'),source:'manual'};
+  const iss={id:editingId||String(Date.now()),flow:document.getElementById('mf-flow').value.trim()||'—',page:document.getElementById('mf-page').value.trim()||'—',desc,severity:document.getElementById('mf-sv').value,status:document.getElementById('mf-st').value,img:mfImg,ts:new Date().toLocaleDateString('en-GB'),source:'manual'};
   if(editingId){const i=project.issues.findIndex(x=>x.id===editingId);if(i!==-1)project.issues[i]=iss;}
   else project.issues.push(iss);
   persist();closeManualModal();renderIssues();updateStats();
@@ -693,15 +693,15 @@ function renderIssues(){
             ${iss.source==='mobile'||iss.source==='imported'?`<span class="badge ${iss.source}" style="font-size:7px;padding:1px 5px;">${iss.source}</span>`:''}
           </div>
           <div class="ic-acts">
-            <button class="icon-btn" onclick="editIssue(${iss.id})">✏️</button>
-            <button class="icon-btn del" onclick="delIssue(${iss.id})">🗑</button>
+            <button class="icon-btn" onclick="editIssue('${iss.id}')">✏️</button>
+            <button class="icon-btn del" onclick="delIssue('${iss.id}')">🗑</button>
           </div>
         </div>
         <div class="ic-desc">${esc(iss.desc)}</div>
         <div class="ic-bottom">
           <div class="ic-badges">
             <span class="badge ${iss.severity}">${iss.severity}</span>
-            <select class="ssel ${iss.status}" onchange="updStatus(${iss.id},this.value)">
+            <select class="ssel ${iss.status}" onchange="updStatus('${iss.id}',this.value)">
               <option ${iss.status==='Open'?'selected':''}>Open</option>
               <option ${iss.status==='Fixed'?'selected':''}>Fixed</option>
               <option ${iss.status==='Wontfix'?'selected':''}>Wontfix</option>
@@ -713,10 +713,10 @@ function renderIssues(){
     </div>`).join('');
 }
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
-function updStatus(id,val){const i=project.issues.find(x=>x.id===id);if(i){i.status=val;renderIssues();updateStats();persist();}}
-function delIssue(id){if(!confirm('Remove this issue?'))return;project.issues=project.issues.filter(i=>i.id!==id);renderIssues();updateStats();persist();}
+function updStatus(id,val){const i=project.issues.find(x=>String(x.id)===String(id));if(i){i.status=val;renderIssues();updateStats();persist();}}
+function delIssue(id){project.issues=project.issues.filter(i=>String(i.id)!==String(id));renderIssues();updateStats();persist();toast('Issue removed');}
 function editIssue(id){
-  const iss=project.issues.find(i=>i.id===id);if(!iss)return;
+  const iss=project.issues.find(i=>String(i.id)===String(id));if(!iss)return;
   document.getElementById('mfTitle').textContent='// Edit Issue';
   document.getElementById('mf-flow').value=iss.flow==='—'?'':iss.flow;
   document.getElementById('mf-page').value=iss.page==='—'?'':iss.page;
@@ -744,7 +744,7 @@ function updateStats(){
 function openCloseModal(){document.getElementById('cmName').textContent=project.name;document.getElementById('closeModal').classList.add('open');}
 function closeCloseModal(e){if(!e||e.target===document.getElementById('closeModal'))document.getElementById('closeModal').classList.remove('open');}
 async function exportThenClose(){await exportAll();setTimeout(()=>wipeProject(),700);}
-function forceClose(){if(!confirm('All issues will be permanently deleted. Continue?'))return;wipeProject();}
+function forceClose(){wipeProject();}
 function wipeProject(){
   project=null;clearPersisted();
   document.getElementById('closeModal').classList.remove('open');
@@ -782,7 +782,7 @@ function importBundle(inp){
         document.getElementById('hName').textContent=project.name;
         document.getElementById('hDate').textContent=`Started ${project.createdAt}`;
       }
-      const merged=incoming.map(iss=>({...iss,id:Date.now()+Math.random(),source:iss.source||'imported'}));
+      const merged=incoming.map(iss=>({...iss,id:String(Date.now())+"_"+Math.random().toString(36).slice(2,7),source:iss.source||'imported'}));
       project.issues.push(...merged);
       persist();updateStats();renderIssues();switchTab(2);
       toast(`✓ ${merged.length} issue${merged.length!==1?'s':''} merged`);
